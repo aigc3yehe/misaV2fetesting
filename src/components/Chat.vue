@@ -853,7 +853,7 @@ const copyAddress = async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 12px;
+  padding: 0 28px; /* 与网格的左padding保持一致 */
 }
 
 .gallery-title {
@@ -890,13 +890,15 @@ const copyAddress = async () => {
 
 .nft-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, 200px);
   gap: 16px;
   padding: 16px;
+  justify-content: start; /* 改为左对齐 */
+  padding-left: 28px; /* 根据实际标题的padding调整此值 */
 }
 
 .nft-card {
-  width: 100%;
+  width: 200px;
   overflow: hidden;
   transition: transform 0.2s ease;
   cursor: pointer;
@@ -911,8 +913,8 @@ const copyAddress = async () => {
 }
 
 .nft-image-wrapper {
-  aspect-ratio: 1;
-  width: 100%;
+  width: 200px;
+  height: 200px;
 }
 
 .nft-image {
