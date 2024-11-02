@@ -53,19 +53,50 @@
         </template>
 
         <template #2>
-          <n-card title="NFT Gallery" class="chat-card">
+          <n-card class="chat-card">
+            <!-- 自定义标题区域 -->
+            <template #header>
+              <div class="gallery-header">
+                <div class="gallery-title">
+                  <span>$MISATO's frens</span>
+                  <n-button circle size="small" @click="fetchNFTs">
+                    <template #icon>
+                      <n-icon><refresh-icon /></n-icon>
+                    </template>
+                  </n-button>
+                </div>
+                <div class="contract-address">
+                  Contract: <n-text code>{{ address }}</n-text>
+                  <n-button circle size="tiny" @click="copyAddress" class="copy-button">
+                    <template #icon>
+                      <n-icon><copy-icon /></n-icon>
+                    </template>
+                  </n-button>
+                </div>
+              </div>
+            </template>
+            
             <n-scrollbar>
               <div v-if="isLoadingNFTs" class="flex justify-center items-center h-40">
                 <n-spin size="large" />
               </div>
-              <n-grid v-else cols="3" :x-gap="12" :y-gap="12">
-                <n-grid-item v-for="nft in nfts" :key="nft.id">
-                  <n-card>
-                    <img :src="nft.image" style="width: 100%">
-                    <p>{{ nft.name }}</p>
-                  </n-card>
-                </n-grid-item>
-              </n-grid>
+              <div v-else class="nft-grid">
+                <n-card v-for="nft in nfts" :key="nft.id" class="nft-card">
+                  <div class="nft-image-wrapper">
+                    <img :src="nft.image" 
+                         class="nft-image" 
+                         @error="e => e.target.src = defaultNftImage"
+                         alt="NFT Image">
+                  </div>
+                  <div class="nft-info">
+                    <p class="nft-name">
+                      <span class="name-text">{{ nft.name }}</span>
+                      <span class="nft-token-id">#{{ nft.id }}</span>
+                    </p>
+                    <n-text code class="nft-id">{{ formatAddress(nft.contract) }}</n-text>
+                  </div>
+                </n-card>
+              </div>
             </n-scrollbar>
           </n-card>
         </template>
@@ -90,11 +121,15 @@
 
 <script setup lang="ts">
 import { ref, computed, nextTick, defineComponent, onMounted, h } from 'vue';
-import { darkTheme, NInput, NAvatar } from 'naive-ui'
+import { darkTheme, NInput, NAvatar, useMessage } from 'naive-ui'
 import type { GlobalTheme } from 'naive-ui'
 import { marked } from 'marked';
 import { Network } from 'alchemy-sdk';
 import { Alchemy } from 'alchemy-sdk';
+import { RefreshOutline as RefreshIcon, Copy as CopyIcon } from '@vicons/ionicons5'
+import defaultNftImage from '@/assets/misato-avatar.png'
+
+const toastMessage = useMessage()
 
 // 方式2: 如果图片放在 src/assets 目录下
 import userAvatarImg from '@/assets/user-avatar.png'
@@ -132,11 +167,11 @@ const fetchNFTs = async () => {
       omitMetadata: omitMetadata
     });
     
-    nfts.value = response.ownedNfts.map(nft => ({
+    nfts.value = response.nfts.map(nft => ({
       id: nft.tokenId,
-      name: nft.title || 'Untitled NFT',
-      image: nft.media[0]?.gateway || 'default-nft-image.png',
-      description: nft.description || 'No description available',
+      name: nft.name || nft.raw?.metadata?.name || `MISATO Frens #${nft.tokenId}`,
+      image: nft.raw?.metadata?.image || nft.image?.cachedUrl || 'default-nft-image.png',
+      description: nft.description || nft.raw?.metadata?.description || 'No description available',
       contract: nft.contract.address
     }));
   } catch (error) {
@@ -147,7 +182,7 @@ const fetchNFTs = async () => {
   }
 };
 
-// 在组件挂载时获取NFT列表
+// 在组件载时获取NFT列表
 onMounted(() => {
   fetchNFTs();
 });
@@ -313,7 +348,7 @@ const pollImageStatus = async (requestId: string) => {
 const isShortMessage = (content: string) => {
   // 移除 markdown 语法标记
   const plainText = content.replace(/[#*`_~]/g, '');
-  // 如果文本长度小于15个字符，并且不包含换行符和中文字符，则认为是短消息
+  // 如果文本长度小于15个字符，并且不包含换行符中文字符，则认为是短消息
   return plainText.length < 15 && 
          !plainText.includes('\n') && 
          !/[\u4e00-\u9fa5]/.test(plainText); // 检查是否包含中文
@@ -333,6 +368,22 @@ const closeImagePreview = () => {
   showImagePreview.value = false
   previewImageUrl.value = ''
 }
+
+// 添加地址格式化函数
+const formatAddress = (address) => {
+  if (!address) return '';
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+};
+
+// 添加复制函数
+const copyAddress = async () => {
+  try {
+    await navigator.clipboard.writeText(address);
+    toastMessage.success('copy success');
+  } catch (err) {
+    console.error('copy error:', err);
+  }
+};
 </script>
 
 <style scoped>
@@ -358,7 +409,7 @@ const closeImagePreview = () => {
   height: 100%;
 }
 
-/* 确保分割面板占满容器 */
+/* 确保分割面板占器 */
 :deep(.n-split) {
   height: 100% !important;
 }
@@ -384,7 +435,7 @@ const closeImagePreview = () => {
 
 :deep(.n-card__content) {
   flex: 1;
-  height: calc(100% - 40px); /* 减去卡片题的高度 */
+  height: calc(100% - 40px); /* 减去片题的高度 */
 }
 
 /* 新增：包含消息区域和输入框的容器 */
@@ -751,14 +802,14 @@ const closeImagePreview = () => {
 .message-content :deep(.n-card) {
   background: var(--sl-color-gray-800) !important;
   border-radius: 12px !important;
-  padding: 12px 16px !important;
+  padding: 6px 6px !important;
   width: fit-content;
   min-width: 60px;
 }
 
 /* 调整 markdown 内容的间距 */
 .message-content-card :deep(.markdown-body) {
-  padding: 4px 0;  /* 添加上下内边距 */
+  padding: 2px 0;  /* 添加上下内边距 */
   white-space: pre-wrap;
   word-wrap: break-word;
 }
@@ -773,7 +824,7 @@ const closeImagePreview = () => {
   white-space: nowrap;
   display: inline-block;
   max-width: 100%;
-  padding: 4px 0;  /* 保持与普通消息一致的内边距 */
+  padding: 2px 0;  /* 保持与普通消息一致的内边距 */
 }
 
 /* 消息发送者名称的间距 */
@@ -796,5 +847,134 @@ const closeImagePreview = () => {
   display: flex;
   gap: 8px;
   align-items: flex-start;
+}
+
+.gallery-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 12px;
+}
+
+.gallery-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.contract-address {
+  font-size: 14px;
+  color: var(--n-text-color-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.copy-button {
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.copy-button:hover {
+  opacity: 1;
+}
+
+/* 调整复制按钮大小 */
+.copy-button:deep(.n-button) {
+  width: 20px;
+  height: 20px;
+  font-size: 14px;
+}
+
+.nft-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+  padding: 16px;
+}
+
+.nft-card {
+  width: 100%;
+  overflow: hidden;
+  transition: transform 0.2s ease;
+  cursor: pointer;
+}
+
+.nft-card:hover {
+  transform: scale(1.02);
+}
+
+.nft-card:deep(.n-card__content) {
+  padding: 0 !important;
+}
+
+.nft-image-wrapper {
+  aspect-ratio: 1;
+  width: 100%;
+}
+
+.nft-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.nft-info {
+  padding: 12px; /* 只在信息区域添加内边距 */
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.nft-name {
+  font-weight: 500;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nft-token-id {
+  color: var(--n-text-color-3);
+  font-weight: normal;
+  margin-left: 8px;
+  flex-shrink: 0;
+}
+
+.nft-id {
+  font-size: 12px;
+}
+
+/* 调整刷新按钮大小以匹配更大的标题 */
+:deep(.n-button.n-button--circle) {
+  width: 28px;
+  height: 28px;
+  font-size: 18px;
+}
+
+/* 调整时间显示的对齐方式 */
+.message-time {
+  font-size: 12px;
+  color: var(--n-text-color-3);
+  margin-top: 4px;
+}
+
+.message.user .message-time {
+  padding-right: 44px; /* 头像宽度(36px) + gap(8px) */
+  text-align: right;
+}
+
+.message.assistant .message-time {
+  padding-left: 44px; /* 头像宽度(36px) + gap(8px) */
+  text-align: left;
 }
 </style>

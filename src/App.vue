@@ -3,7 +3,9 @@ import Chat from './components/Chat.vue'
 </script>
 
 <template>
-  <Chat/>
+  <n-message-provider>
+    <Chat />
+  </n-message-provider>
 </template>
 
 <style>
