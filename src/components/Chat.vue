@@ -149,14 +149,13 @@
 import { ref, computed, nextTick, defineComponent, onMounted, h } from 'vue';
 import { darkTheme, NInput, NAvatar, useMessage } from 'naive-ui'
 import { marked } from 'marked';
-import { Network } from 'alchemy-sdk';
-import { Alchemy } from 'alchemy-sdk';
 import { 
   RefreshOutline as RefreshIcon, 
   Copy as CopyIcon
 } from '@vicons/ionicons5'
 import defaultNftImage from '@/assets/misato-avatar.png'
 import type { ScrollbarInst } from 'naive-ui'
+import { v4 as uuidv4 } from 'uuid'; 
 
 // 添加新的接口定义
 interface ChatMessage {
@@ -184,18 +183,27 @@ const userAvatar = userAvatarImg
 const botAvatar = botAvatarImg
 
 const theme = ref(darkTheme)
-const address = "0x091734AE3AAc8ed61e9341Bf2fDfe33E5e1D74CF"
+//const address = "0x091734AE3AAc8ed61e9341Bf2fDfe33E5e1D74CF"
+const address = "0x54C8d8d2838DE32327403FeeB41F7A91D02c02ec" // 新地址，晚点切换
 
 const inputMessage = ref('')
-const messages = ref<ChatMessage[]>([])
+const messages = ref<ChatMessage[]>([
+  {
+    id: 1,
+    type: 'text',
+    content: '\\### MISATO just opened her own studio! You can ask her about NFT purchases. Minting fee 0.002eth, total supply 500',
+    role: 'system'
+  }
+])
 
 // 添加 Alchemy 配置
 const config = {
   apiKey: "goUyG3r-JBxlrxzsqIoyv0b_W-LwScsN",
-  network: Network.BASE_MAINNET,
+  //network: Network.BASE_MAINNET,
 };
 
-const alchemy = new Alchemy(config);
+const baseUrl = 'https://base-mainnet.g.alchemy.com/nft/v3';
+const apiKey = 'goUyG3r-JBxlrxzsqIoyv0b_W-LwScsN';
 
 // 更新 NFT 相关状态
 const nfts = ref<NFT[]>([]);
@@ -230,19 +238,38 @@ const inputPlaceholder = computed(() => {
 const fetchNFTs = async () => {
   isLoadingNFTs.value = true;
   try {
-    const omitMetadata = false;
     
-    const response = await alchemy.nft.getNftsForContract(address, {
-      omitMetadata: omitMetadata
-    });
-    
-    nfts.value = response.nfts.map(nft => ({
-      id: nft.tokenId,
-      name: nft.name || nft.raw?.metadata?.name || `MISATO Frens #${nft.tokenId}`,
-      image: nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.cachedUrl || 'default-nft-image.png',
-      description: nft.description || nft.raw?.metadata?.description || 'No description available',
-      contract: nft.contract.address
-    }));
+    let pageKey = null;
+    let allNfts: any[] = [];
+
+    do {
+      const queryParams: URLSearchParams = new URLSearchParams({
+        contractAddress: address,
+        withMetadata: 'true',
+        //startToken: '1',
+        limit: '500',
+        ...(pageKey && { pageKey })
+      });
+
+      const response = await fetch(
+        `${baseUrl}/${apiKey}/getNFTsForContract?${queryParams}`
+      );
+      
+      const data = await response.json();
+      
+      const newNfts = data.nfts.map((nft: any) => ({
+        id: nft.tokenId,
+        name: nft.name || nft.raw?.metadata?.name || `MISATO Frens #${nft.tokenId}`,
+        image: nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.cachedUrl || 'default-nft-image.png',
+        description: nft.description || nft.raw?.metadata?.description || 'No description available',
+        contract: nft.contract.address
+      }));
+      
+      allNfts = [...allNfts, ...newNfts];
+      pageKey = data.pageKey;
+    } while (pageKey);
+
+    nfts.value = allNfts.sort((a, b) => Number(b.id) - Number(a.id));
   } catch (error) {
     console.error('Error fetching NFTs:', error);
     nftError.value = 'Failed to load NFTs';
@@ -253,6 +280,7 @@ const fetchNFTs = async () => {
 
 // 在组件载时获取NFT列表
 onMounted(() => {
+  userUuid.value = getOrCreateUuid();
   fetchNFTs();
 });
 
@@ -315,7 +343,23 @@ const formatTime = (date: Date) => {
   return `${hours}:${minutes}`;
 };
 
-// 更新 sendMessage 函数
+// 添加 UUID 相关的常量和状态
+const UUID_STORAGE_KEY = 'misato_user_uuid';
+const userUuid = ref('');
+
+// 添加获取或生成 UUID 的函数
+const getOrCreateUuid = (): string => {
+  const storedUuid = localStorage.getItem(UUID_STORAGE_KEY);
+  if (storedUuid) {
+    return storedUuid;
+  }
+  
+  const newUuid = uuidv4();
+  localStorage.setItem(UUID_STORAGE_KEY, newUuid);
+  return newUuid;
+};
+
+// 更新 sendMessage 函数，添加 UUID
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || isProcessing.value) return;
   
@@ -347,7 +391,8 @@ const sendMessage = async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message,
-        conversation_history
+        conversation_history,
+        user_uuid: userUuid.value
       })
     });
 
@@ -370,6 +415,10 @@ const sendMessage = async () => {
     if (result.request_id) {
       pollImageStatus(result.request_id);
     }
+    // 如果铸币成功,刷新 NFT 列表
+    if (result.mintSuccess) {
+      await fetchNFTs(); // 自动刷新 NFT 列表
+    }
   } catch (error) {
     console.error('Error:', error);
     messages.value.push({
@@ -387,6 +436,18 @@ const sendMessage = async () => {
 
 // 更新图片状态轮询函数
 const pollImageStatus = async (requestId: string) => {
+  // 添加进度消息的 ID，用于后续更新和移除
+  const progressMessageId = Date.now();
+  
+  // 添加等待消息
+  messages.value.push({
+    id: progressMessageId,
+    type: 'text',
+    role: 'system',
+    content: '🎨 Generating image...',
+    time: formatTime(new Date())
+  });
+  
   const checkStatus = async () => {
     try {
       processingState.value = 'generating';
@@ -394,11 +455,26 @@ const pollImageStatus = async (requestId: string) => {
       const result = await response.json();
 
       if (result.status === 'completed') {
-        // 如果需要铸造 NFT
-        if (result.shouldMint) {
-          processingState.value = 'minting';
-          // 铸造 NFT 的逻辑...
+        // 移除进度消息
+        messages.value = messages.value.filter(m => m.id !== progressMessageId);
+        
+        // 如果铸币成功,刷新 NFT 列表
+        if (result.mintSuccess) {
+          await fetchNFTs(); // 自动刷新 NFT 列表
         }
+
+        // 如果有文本内容，添加文本消息
+        if (result.content) {
+          messages.value.push({
+            id: Date.now(),
+            type: 'text',
+            role: 'assistant', 
+            content: result.content,
+            time: formatTime(new Date())
+          });
+        }
+        
+        // 添加完成的图片消息
         messages.value.push({
           id: Date.now(),
           type: 'image',
@@ -406,22 +482,37 @@ const pollImageStatus = async (requestId: string) => {
           content: result.urls[0],
           time: formatTime(new Date())
         });
+        
         processingState.value = 'idle';
         scrollToBottom();
       } else if (result.status === 'failed') {
+        // 移除进度消息
+        messages.value = messages.value.filter(m => m.id !== progressMessageId);
+        
         processingState.value = 'idle';
         messages.value.push({
           id: Date.now(),
           type: 'error',
           role: 'system',
-          content: `Image generation failed: ${result.error || 'Unknown error'}`
+          content: `Image generation failed: ${result.error || 'Unknown error'}`,
+          time: formatTime(new Date())
         });
       } else {
         setTimeout(checkStatus, 2000);
       }
     } catch (error) {
       console.error('Error checking image status:', error);
+      // 移除进度消息
+      messages.value = messages.value.filter(m => m.id !== progressMessageId);
+      
       processingState.value = 'idle';
+      messages.value.push({
+        id: Date.now(),
+        type: 'error',
+        role: 'system',
+        content: 'Error checking image generation status',
+        time: formatTime(new Date())
+      });
     }
   };
 
@@ -1058,7 +1149,7 @@ const isLastMessage = (message: ChatMessage) => {
   gap: 16px;
   padding: 16px;
   justify-content: start; /* 改为左对齐 */
-  padding-left: 28px; /* 根���实际标题的padding调整此值 */
+  padding-left: 28px; /* 根据实际标题的padding调整此值 */
 }
 
 .nft-card {
