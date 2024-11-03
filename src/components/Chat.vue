@@ -780,12 +780,12 @@ watch(processingState, (newState) => {
 }
 
 .message.assistant .message-content :deep(.n-card) {
-  background: var(--sl-color-gray-800) !important;
+  background: var(--sl-color-gray-800, #27272a) !important;
   border-top-left-radius: 2px !important;
 }
 
 .message.user .message-content :deep(.n-card) {
-  background: var(--sl-color-gray-800) !important;
+  background: var(--sl-color-gray-800, #27272a) !important;
   border-top-right-radius: 2px !important;
 }
 
@@ -1090,7 +1090,7 @@ watch(processingState, (newState) => {
 
 /* 调整消息气泡的样式 */
 .message-content :deep(.n-card) {
-  background: var(--sl-color-gray-800) !important;
+  background: var(--sl-color-gray-800, #27272a) !important;
   border-radius: 12px !important;
   padding: 6px 6px !important;
   width: fit-content;

@@ -10,6 +10,14 @@ import Chat from './components/Chat.vue'
 
 <style>
 /* 重置默认样式 */
+:root {
+  --sl-color-gray-950: #131316;
+  --sl-color-gray-900: #18181b;
+  --sl-color-gray-800: #27272a;
+  --sl-color-gray-700: #3f3f46;
+  --sl-color-gray-600: #52525b;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -23,7 +31,7 @@ html, body, #app {
 }
 
 #app {
-  background-color: var(--sl-color-gray-950);
+  background-color: var(--sl-color-gray-950, #09090b);
 }
 
 header {
