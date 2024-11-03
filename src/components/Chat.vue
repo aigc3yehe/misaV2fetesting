@@ -196,12 +196,10 @@ const userAvatar = userAvatarImg
 const botAvatar = botAvatarImg
 
 const theme = ref(darkTheme)
-//const address = "0xccb6B629f5434102e37175BDac8262722180a62f" // 新地址，晚点切换
-const address = "0x54C8d8d2838DE32327403FeeB41F7A91D02c02ec" 
+const address = "0xccb6B629f5434102e37175BDac8262722180a62f"
 
 // 添加钱包地址常量
-const walletAddress = "0xddcddbfc282721beacff99cc67137f728c5fb2fd";
-//const walletAddress = "0x900709432a8F2C7E65f90aA7CD35D0afe4eB7169";
+const walletAddress = "0x900709432a8F2C7E65f90aA7CD35D0afe4eB7169";
 
 const inputMessage = ref('')
 const messages = ref<ChatMessage[]>([
