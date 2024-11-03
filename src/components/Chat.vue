@@ -85,7 +85,10 @@
                   <div class="nft-image-wrapper">
                     <img :src="nft.image" 
                          class="nft-image" 
-                         @error="e => e.target.src = defaultNftImage"
+                         @error="(e: Event) => {
+                           const target = e.target as HTMLImageElement;
+                           if (target) target.src = defaultNftImage;
+                         }"
                          alt="NFT Image">
                   </div>
                   <div class="nft-info">
@@ -127,6 +130,7 @@ import { Network } from 'alchemy-sdk';
 import { Alchemy } from 'alchemy-sdk';
 import { RefreshOutline as RefreshIcon, Copy as CopyIcon } from '@vicons/ionicons5'
 import defaultNftImage from '@/assets/misato-avatar.png'
+import type { ScrollbarInst } from 'naive-ui'
 
 // 添加新的接口定义
 interface ChatMessage {
@@ -206,7 +210,7 @@ onMounted(() => {
   fetchNFTs();
 });
 
-const scrollbarRef = ref(null)
+const scrollbarRef = ref<ScrollbarInst | null>(null)
 
 // 在发送消息后滚动到底部
 const scrollToBottom = () => {
