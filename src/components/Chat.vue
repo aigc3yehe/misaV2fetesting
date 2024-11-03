@@ -3,7 +3,21 @@
     <n-config-provider :theme="theme" class="config-provider">
       <n-split direction="horizontal" default-size="650px" :max="0.75" min="650px" class="main-container">
         <template #1>
-          <n-card title="MISATO Studio" class="chat-card">
+          <n-card class="chat-card">
+            <!-- 自定义标题区域 -->
+            <template #header>
+              <div class="chat-header">
+                
+                <div class="wallet-address">
+                  <n-text>MISATO's wallet</n-text><n-text code>{{ walletAddress }}</n-text>
+                  <n-button circle size="tiny" @click="copyWalletAddress" class="copy-button">
+                    <template #icon>
+                      <n-icon><copy-icon /></n-icon>
+                    </template>
+                  </n-button>
+                </div>
+              </div>
+            </template>
             <!-- 消息区域和输入区域的容器 -->
             <div class="chat-container">
               <!-- 消息列表区域 -->
@@ -118,9 +132,7 @@
                   <div class="nft-info">
                     <p class="nft-name">
                       <span class="name-text">{{ nft.name }}</span>
-                      <span class="nft-token-id">#{{ nft.id }}</span>
                     </p>
-                    <n-text code class="nft-id">{{ formatAddress(nft.contract) }}</n-text>
                   </div>
                 </n-card>
               </div>
@@ -659,6 +671,19 @@ watch(processingState, (newState) => {
     });
   }
 });
+
+// 添加钱包地址常量
+const walletAddress = "0xddcddbfc282721beacff99cc67137f728c5fb2fd";
+
+// 添加复制钱包地址的方法
+const copyWalletAddress = async () => {
+  try {
+    await navigator.clipboard.writeText(walletAddress);
+    toastMessage.success('copy success');
+  } catch (err) {
+    console.error('copy error:', err);
+  }
+};
 </script>
 
 <style scoped>
@@ -1139,19 +1164,43 @@ watch(processingState, (newState) => {
   align-items: flex-start;
 }
 
+/* 更新 chat-header 样式 */
+.chat-header {
+  display: flex;
+  justify-content: flex-end; /* 改为靠右对齐 */
+  align-items: center;
+  padding: 0 16px;
+}
+
+.wallet-address {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--n-text-color-3); /* 与 contract-address 保持一致的颜色 */
+}
+
+.wallet-address :deep(.n-text) {
+  font-size: 13px;
+}
+
 .gallery-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 28px; /* 与网格的左padding保持一致 */
+  padding: 0 16px;
 }
 
 .gallery-title {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-size: 24px;
+}
+
+.gallery-title span {
+  font-size: 20px;
   font-weight: 600;
+  color: var(--n-text-color);
 }
 
 .contract-address {
@@ -1160,6 +1209,10 @@ watch(processingState, (newState) => {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.contract-address :deep(.n-text) {
+  font-size: 13px;
 }
 
 .copy-button {
@@ -1216,10 +1269,9 @@ watch(processingState, (newState) => {
 }
 
 .nft-info {
-  padding: 12px; /* 只在信息区域添加内边距 */
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
 .nft-name {
@@ -1236,15 +1288,10 @@ watch(processingState, (newState) => {
   white-space: nowrap;
 }
 
-.nft-token-id {
-  color: var(--n-text-color-3);
-  font-weight: normal;
-  margin-left: 8px;
-  flex-shrink: 0;
-}
-
+/* 隐藏 token ID 和地址 */
+.nft-token-id,
 .nft-id {
-  font-size: 12px;
+  display: none;
 }
 
 /* 调整刷新按钮大小以匹配更大的标题 */
