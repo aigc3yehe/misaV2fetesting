@@ -3,7 +3,7 @@
     <n-config-provider :theme="theme" class="config-provider">
       <n-split direction="horizontal" default-size="650px" :max="0.75" min="650px" class="main-container">
         <template #1>
-          <n-card title="AI Assistant" class="chat-card">
+          <n-card title="MISATO Studio" class="chat-card">
             <!-- 消息区域和输入区域的容器 -->
             <div class="chat-container">
               <!-- 消息列表区域 -->
@@ -58,7 +58,7 @@
             <template #header>
               <div class="gallery-header">
                 <div class="gallery-title">
-                  <span>$MISATO's frens</span>
+                  <span>MISATO Frens</span>
                   <n-button circle size="small" @click="fetchNFTs">
                     <template #icon>
                       <n-icon><refresh-icon /></n-icon>
@@ -66,7 +66,7 @@
                   </n-button>
                 </div>
                 <div class="contract-address">
-                  Contract: <n-text code>{{ address }}</n-text>
+                  <n-text code>{{ address }}</n-text>
                   <n-button circle size="tiny" @click="copyAddress" class="copy-button">
                     <template #icon>
                       <n-icon><copy-icon /></n-icon>
@@ -81,7 +81,10 @@
                 <n-spin size="large" />
               </div>
               <div v-else class="nft-grid">
-                <n-card v-for="nft in nfts" :key="nft.id" class="nft-card">
+                <n-card v-for="nft in nfts" 
+                        :key="nft.id" 
+                        class="nft-card"
+                        @click="openNftLink(nft.contract, nft.id)">
                   <div class="nft-image-wrapper">
                     <img :src="nft.image" 
                          class="nft-image" 
@@ -396,6 +399,12 @@ const copyAddress = async () => {
   } catch (err) {
     console.error('copy error:', err);
   }
+};
+
+// 添加打开NFT链接的方法
+const openNftLink = (contract: string, tokenId: string) => {
+  const url = `https://magiceden.io/item-details/base/${contract}/${tokenId}`;
+  window.open(url, '_blank');
 };
 </script>
 
@@ -913,12 +922,13 @@ const copyAddress = async () => {
 .nft-card {
   width: 200px;
   overflow: hidden;
-  transition: transform 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   cursor: pointer;
 }
 
 .nft-card:hover {
   transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .nft-card:deep(.n-card__content) {
