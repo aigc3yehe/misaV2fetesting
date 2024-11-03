@@ -24,7 +24,7 @@
                         </n-card>
                         <div v-else-if="message.type === 'image'" class="message-image-container">
                           <img :src="message.content" class="message-image" @click="openImagePreview(message.content)" 
-                               alt="Generated NFT" @error="handleImageError" />
+                               alt="Generated NFT" />
                         </div>
                       </div>
                     </div>
@@ -122,12 +122,27 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, defineComponent, onMounted, h } from 'vue';
 import { darkTheme, NInput, NAvatar, useMessage } from 'naive-ui'
-import type { GlobalTheme } from 'naive-ui'
 import { marked } from 'marked';
 import { Network } from 'alchemy-sdk';
 import { Alchemy } from 'alchemy-sdk';
 import { RefreshOutline as RefreshIcon, Copy as CopyIcon } from '@vicons/ionicons5'
 import defaultNftImage from '@/assets/misato-avatar.png'
+
+// 添加新的接口定义
+interface ChatMessage {
+  id: number;
+  type: 'text' | 'image';
+  content: string;
+  time?: string;
+  role: string;
+}
+
+interface NFT {
+  id: string;
+  name: string;
+  image: string;
+  contract: string;
+}
 
 const toastMessage = useMessage()
 
@@ -139,10 +154,10 @@ const userAvatar = userAvatarImg
 const botAvatar = botAvatarImg
 
 const theme = ref(darkTheme)
-const address = "0xdAb3B7Ea12858B1ADE1367C8E429A4b6e56d851a"
+const address = "0x091734AE3AAc8ed61e9341Bf2fDfe33E5e1D74CF"
 
 const inputMessage = ref('')
-const messages = ref([])
+const messages = ref<ChatMessage[]>([])
 
 // 添加 Alchemy 配置
 const config = {
@@ -153,9 +168,13 @@ const config = {
 const alchemy = new Alchemy(config);
 
 // 更新 NFT 相关状态
-const nfts = ref([]);
+const nfts = ref<NFT[]>([]);
 const isLoadingNFTs = ref(false);
 const nftError = ref('');
+
+// 添加新的变量
+const backendUrl = 'http://45.32.110.109:8000';
+const isProcessing = ref(false);
 
 // 添加获取 NFT 的函数
 const fetchNFTs = async () => {
@@ -170,7 +189,7 @@ const fetchNFTs = async () => {
     nfts.value = response.nfts.map(nft => ({
       id: nft.tokenId,
       name: nft.name || nft.raw?.metadata?.name || `MISATO Frens #${nft.tokenId}`,
-      image: nft.raw?.metadata?.image || nft.image?.cachedUrl || 'default-nft-image.png',
+      image: nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.cachedUrl || 'default-nft-image.png',
       description: nft.description || nft.raw?.metadata?.description || 'No description available',
       contract: nft.contract.address
     }));
@@ -192,28 +211,17 @@ const scrollbarRef = ref(null)
 // 在发送消息后滚动到底部
 const scrollToBottom = () => {
   nextTick(() => {
-    const scrollbar = scrollbarRef.value
-    if (scrollbar) {
-      const container = scrollbar.containerRef
-      if (container) {
-        container.scrollTop = container.scrollHeight
+    setTimeout(() => {
+      const scrollbar = scrollbarRef.value
+      if (scrollbar) {
+        // 直接使用 scrollTo 方法，不传入 behavior 选项
+        scrollbar.scrollTo({
+          top: 999999 // 使用一个足够大的值确保滚动到底部
+        })
       }
-    }
+    }, 100) // 稍微增加延迟时间以确保内容已渲染
   })
 }
-
-// 添加新的接口定义
-interface ChatMessage {
-  id: number;
-  type: 'text' | 'image';
-  content: string;
-  time?: string;
-  role: string;
-}
-
-// 添加新的变量
-const backendUrl = 'http://45.32.110.109:8000';
-const isProcessing = ref(false);
 
 // 添加 Markdown 渲染组件
 const MDRenderer = defineComponent({
@@ -305,6 +313,7 @@ const sendMessage = async () => {
       role: 'assistant',
       content: 'Sorry, an error occurred while processing the message. Please try again.'
     });
+    scrollToBottom();
   } finally {
     isProcessing.value = false;
   }
@@ -370,7 +379,7 @@ const closeImagePreview = () => {
 }
 
 // 添加地址格式化函数
-const formatAddress = (address) => {
+const formatAddress = (address: string) => {
   if (!address) return '';
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
@@ -450,7 +459,7 @@ const copyAddress = async () => {
 .messages-container {
   flex: 1;
   min-height: 0; /* 确保滚动正常工作 */
-  overflow: auto; /* 允许消息区域滚动 */
+  overflow: auto; /* 允许消息区域动 */
 }
 
 .chat-messages {
