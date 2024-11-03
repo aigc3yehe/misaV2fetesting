@@ -395,7 +395,7 @@ const sendMessage = async () => {
         message,
         conversation_history,
         user_uuid: userUuid.value,
-        request_id: currentRequestId.value // 添加 requestId 到请求中
+        request_id: currentRequestId.value
       })
     });
 
@@ -416,16 +416,22 @@ const sendMessage = async () => {
     scrollToBottom();
 
     if (result.request_id) {
-      currentRequestId.value = result.request_id; // 保存新的 requestId
+      currentRequestId.value = result.request_id;
       processingState.value = 'generating';
       pollImageStatus(result.request_id);
     } else {
       processingState.value = 'idle';
     }
     
-    if (result.mintSuccess) {
-      await fetchNFTs();
+    // 处理铸造成功的情况
+    if (result.status === 'success') {
+      // 延迟5秒后刷新NFT列表
+      setTimeout(async () => {
+        await fetchNFTs();
+        toastMessage.success('NFT minted successfully!');
+      }, 5000);
     }
+
   } catch (error) {
     console.error('Error:', error);
     messages.value.push({
