@@ -12,19 +12,38 @@
                   <div v-for="message in messages" :key="message.id" 
                        :class="['message', message.role === 'user' ? 'user' : 'assistant']">
                     <div class="message-wrapper">
-                      <n-avatar v-if="message.role === 'assistant'" round :src="botAvatar" class="avatar" />
-                      <n-avatar v-else round :src="userAvatar" class="avatar" />
+                      <n-avatar v-if="message.role === 'user'" round :src="userAvatar" class="avatar" />
+                      <n-avatar v-else round :src="botAvatar" class="avatar" />
                       <div class="message-content">
-                        <div class="message-sender">{{ message.role === 'user' ? 'You' : '$MISATO' }}</div>
-                        <n-card v-if="message.type === 'text'" 
-                                :bordered="false" 
-                                size="small" 
-                                :class="['message-content-card', isShortMessage(message.content) ? 'no-wrap' : '']">
-                          <MDRenderer :content="message.content" />
-                        </n-card>
-                        <div v-else-if="message.type === 'image'" class="message-image-container">
-                          <img :src="message.content" class="message-image" @click="openImagePreview(message.content)" 
-                               alt="Generated NFT" />
+                        <div class="message-sender">{{ 
+                          message.role === 'user' ? 'You' : '$MISATO' 
+                        }}</div>
+                        <div class="message-content-wrapper">
+                          <n-card v-if="message.type === 'text'" 
+                                  :bordered="false" 
+                                  size="small" 
+                                  :class="['message-content-card', isShortMessage(message.content) ? 'no-wrap' : '']">
+                            <MDRenderer :content="message.content" />
+                          </n-card>
+                          <div v-else-if="message.type === 'image'" class="message-image-container">
+                            <img :src="message.content" class="message-image" @click="openImagePreview(message.content)" 
+                                 alt="Generated NFT" />
+                          </div>
+                          <div v-else-if="message.type === 'error'" class="error-message-container">
+                            <n-card :bordered="false" size="small" class="error-card">
+                              <MDRenderer :content="message.content" />
+                            </n-card>
+                            <n-button v-if="isLastMessage(message)" 
+                                      circle 
+                                      size="small" 
+                                      type="warning" 
+                                      class="retry-button" 
+                                      @click="retryMessage(messages[messages.length-2].content)">
+                              <template #icon>
+                                <n-icon><refresh-icon /></n-icon>
+                              </template>
+                            </n-button>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -39,10 +58,11 @@
                   v-model:value="inputMessage"
                   type="textarea"
                   :autosize="{ minRows: 1, maxRows: 3 }"
-                  placeholder="Type a message, press Enter to send..."
+                  :placeholder="inputPlaceholder"
                   @keypress.enter.prevent="sendMessage"
                   class="chat-input"
                   :autofocus="true"
+                  :disabled="isProcessing"
                 />
                 <n-button type="primary" @click="sendMessage" :disabled="!inputMessage.trim()">
                   Send
@@ -131,14 +151,17 @@ import { darkTheme, NInput, NAvatar, useMessage } from 'naive-ui'
 import { marked } from 'marked';
 import { Network } from 'alchemy-sdk';
 import { Alchemy } from 'alchemy-sdk';
-import { RefreshOutline as RefreshIcon, Copy as CopyIcon } from '@vicons/ionicons5'
+import { 
+  RefreshOutline as RefreshIcon, 
+  Copy as CopyIcon
+} from '@vicons/ionicons5'
 import defaultNftImage from '@/assets/misato-avatar.png'
 import type { ScrollbarInst } from 'naive-ui'
 
 // 添加新的接口定义
 interface ChatMessage {
   id: number;
-  type: 'text' | 'image';
+  type: 'text' | 'image' | 'error';
   content: string;
   time?: string;
   role: string;
@@ -182,6 +205,26 @@ const nftError = ref('');
 // 添加新的变量
 const backendUrl = '/api';
 const isProcessing = ref(false);
+
+// 添加处理状态枚举
+type ProcessingState = 'idle' | 'thinking' | 'generating' | 'minting';
+
+// 更新状态管理
+const processingState = ref<ProcessingState>('idle');
+
+// 更新 placeholder 计算属性
+const inputPlaceholder = computed(() => {
+  switch (processingState.value) {
+    case 'thinking':
+      return 'MISATO is thinking...';
+    case 'generating':
+      return 'MISATO is generating image...';
+    case 'minting':
+      return 'MISATO is minting NFT...';
+    default:
+      return 'Type a message, press Enter to send...';
+  }
+});
 
 // 添加获取 NFT 的函数
 const fetchNFTs = async () => {
@@ -246,9 +289,21 @@ const MDRenderer = defineComponent({
       });
     });
 
+    // 添加图片点击事件处理
+    const handleClick = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'IMG') {
+        const imgSrc = (target as HTMLImageElement).src;
+        if (imgSrc) {
+          openImagePreview(imgSrc);
+        }
+      }
+    };
+
     return () => h('div', {
       innerHTML: renderedContent.value,
-      class: 'markdown-body'
+      class: 'markdown-body',
+      onClick: handleClick
     });
   }
 });
@@ -267,11 +322,14 @@ const sendMessage = async () => {
   const message = inputMessage.value.trim();
   inputMessage.value = '';
   isProcessing.value = true;
+  processingState.value = 'thinking';
   
-  const conversation_history = messages.value.map(msg => ({ 
-    role: msg.role, 
-    content: msg.content 
-  }));
+  const conversation_history = messages.value
+    .filter(msg => msg.role === 'assistant' || msg.role === 'user')
+    .map(msg => ({ 
+      role: msg.role, 
+      content: msg.content 
+    }));
 
   messages.value.push({
     id: Date.now(),
@@ -316,9 +374,10 @@ const sendMessage = async () => {
     console.error('Error:', error);
     messages.value.push({
       id: Date.now() + 1,
-      type: 'text',
-      role: 'assistant',
-      content: 'Sorry, an error occurred while processing the message. Please try again.'
+      type: 'error',
+      role: 'system',
+      content: 'Sorry, an error occurred while processing the message. Please try again.',
+      time: formatTime(new Date())
     });
     scrollToBottom();
   } finally {
@@ -326,14 +385,20 @@ const sendMessage = async () => {
   }
 };
 
-// 添加图片状态轮询函数
+// 更新图片状态轮询函数
 const pollImageStatus = async (requestId: string) => {
   const checkStatus = async () => {
     try {
+      processingState.value = 'generating';
       const response = await fetch(`${backendUrl}/generation-status/${requestId}`);
       const result = await response.json();
 
       if (result.status === 'completed') {
+        // 如果需要铸造 NFT
+        if (result.shouldMint) {
+          processingState.value = 'minting';
+          // 铸造 NFT 的逻辑...
+        }
         messages.value.push({
           id: Date.now(),
           type: 'image',
@@ -341,12 +406,14 @@ const pollImageStatus = async (requestId: string) => {
           content: result.urls[0],
           time: formatTime(new Date())
         });
+        processingState.value = 'idle';
         scrollToBottom();
       } else if (result.status === 'failed') {
+        processingState.value = 'idle';
         messages.value.push({
           id: Date.now(),
-          type: 'text',
-          role: 'assistant',
+          type: 'error',
+          role: 'system',
           content: `Image generation failed: ${result.error || 'Unknown error'}`
         });
       } else {
@@ -354,6 +421,7 @@ const pollImageStatus = async (requestId: string) => {
       }
     } catch (error) {
       console.error('Error checking image status:', error);
+      processingState.value = 'idle';
     }
   };
 
@@ -405,6 +473,65 @@ const copyAddress = async () => {
 const openNftLink = (contract: string, tokenId: string) => {
   const url = `https://magiceden.io/item-details/base/${contract}/${tokenId}`;
   window.open(url, '_blank');
+};
+
+// 更新重试函数
+const retryMessage = async (originalMessage: string) => {
+  if (isProcessing.value) return;
+  
+  messages.value.pop();
+  isProcessing.value = true;
+  processingState.value = 'thinking';
+  
+  const conversation_history = messages.value.map(msg => ({ 
+    role: msg.role, 
+    content: msg.content 
+  }));
+
+  try {
+    const response = await fetch(`${backendUrl}/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: originalMessage,
+        conversation_history
+      })
+    });
+
+    const result = await response.json();
+    
+    if (result.error) {
+      throw new Error(result.error.message);
+    }
+
+    messages.value.push({
+      id: Date.now() + 1,
+      type: 'text',
+      role: 'assistant',
+      content: result.content,
+      time: formatTime(new Date())
+    });
+
+    if (result.request_id) {
+      pollImageStatus(result.request_id);
+    }
+  } catch (error) {
+    messages.value.push({
+      id: Date.now() + 1,
+      type: 'error',
+      role: 'system',
+      content: 'Sorry, an error occurred while processing the message. Please try again.',
+      time: formatTime(new Date())
+    });
+  } finally {
+    isProcessing.value = false;
+    scrollToBottom();
+  }
+};
+
+// 添加判断是否为最后一条消息的方法
+const isLastMessage = (message: ChatMessage) => {
+  return message === messages.value[messages.value.length - 1];
 };
 </script>
 
@@ -680,6 +807,21 @@ const openNftLink = (contract: string, tokenId: string) => {
   padding: 0 !important;
 }
 
+/* 添加 markdown 图片样式 */
+.message-content :deep(.markdown-body img) {
+  max-width: 300px; /* 限制最大宽度 */
+  height: auto;
+  border-radius: 8px;
+  margin: 8px 0;
+  cursor: zoom-in;
+  transition: transform 0.2s ease;
+}
+
+.message-content :deep(.markdown-body img:hover) {
+  transform: scale(1.02);
+}
+
+
 .message-content :deep(.markdown-body) {
   display: inline;
   white-space: pre-wrap;
@@ -737,7 +879,7 @@ const openNftLink = (contract: string, tokenId: string) => {
 
 /* 添加新的图片容器样式 */
 .message-image-container {
-  max-width: 300px; /* 限制图片容器的最大宽度 */
+  max-width: 300px; /* 限制图片容的最大宽度 */
   margin: 8px 0;
 }
 
@@ -916,7 +1058,7 @@ const openNftLink = (contract: string, tokenId: string) => {
   gap: 16px;
   padding: 16px;
   justify-content: start; /* 改为左对齐 */
-  padding-left: 28px; /* 根据实际标题的padding调整此值 */
+  padding-left: 28px; /* 根���实际标题的padding调整此值 */
 }
 
 .nft-card {
@@ -1001,5 +1143,49 @@ const openNftLink = (contract: string, tokenId: string) => {
 .message.assistant .message-time {
   padding-left: 44px; /* 头像宽度(36px) + gap(8px) */
   text-align: left;
+}
+
+/* 添加错误消息相关样式 */
+.error-message-container {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.error-card {
+  background: var(--n-color-error-1) !important;
+}
+
+.retry-button {
+  flex-shrink: 0;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.retry-button:hover {
+  opacity: 1;
+}
+
+/* 调整系统消息样式 */
+.message.system .message-content :deep(.n-card) {
+  background: var(--n-color-warning-1) !important;
+}
+
+/* 添加发送按钮样式 */
+.input-container .n-button {
+  align-self: flex-end;
+  margin-bottom: 2px; /* 微调按钮位置以对齐输入框 */
+}
+
+/* 调整图标大小 */
+.input-container .n-button :deep(.n-icon) {
+  font-size: 18px;
+}
+
+/* 调整加载动画大小 */
+.input-container .n-button :deep(.n-spin) {
+  font-size: 18px;
+  width: 18px;
+  height: 18px;
 }
 </style>
