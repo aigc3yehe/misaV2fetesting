@@ -177,7 +177,7 @@ const isLoadingNFTs = ref(false);
 const nftError = ref('');
 
 // 添加新的变量
-const backendUrl = 'http://45.32.110.109:8000';
+const backendUrl = '/api';
 const isProcessing = ref(false);
 
 // 添加获取 NFT 的函数
