@@ -62,7 +62,8 @@
                   @keypress.enter.prevent="sendMessage"
                   class="chat-input"
                   :autofocus="true"
-                  :disabled="isProcessing"
+                  :disabled="processingState !== 'idle'"
+                  ref="inputRef"
                 />
                 <n-button type="primary" @click="sendMessage" :disabled="!inputMessage.trim()">
                   Send
@@ -146,7 +147,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, defineComponent, onMounted, h } from 'vue';
+import { ref, computed, nextTick, defineComponent, onMounted, h, watch } from 'vue';
 import { darkTheme, NInput, NAvatar, useMessage } from 'naive-ui'
 import { marked } from 'marked';
 import { 
@@ -212,7 +213,6 @@ const nftError = ref('');
 
 // 添加新的变量
 const backendUrl = '/api';
-const isProcessing = ref(false);
 
 // 添加处理状态枚举
 type ProcessingState = 'idle' | 'thinking' | 'generating' | 'minting';
@@ -359,13 +359,15 @@ const getOrCreateUuid = (): string => {
   return newUuid;
 };
 
-// 更新 sendMessage 函数，添加 UUID
+// 添加新的状态来存储当前的 requestId
+const currentRequestId = ref<string | null>(null);
+
+// 更新 sendMessage 函数
 const sendMessage = async () => {
-  if (!inputMessage.value.trim() || isProcessing.value) return;
+  if (!inputMessage.value.trim() || processingState.value !== 'idle') return;
   
   const message = inputMessage.value.trim();
   inputMessage.value = '';
-  isProcessing.value = true;
   processingState.value = 'thinking';
   
   const conversation_history = messages.value
@@ -392,7 +394,8 @@ const sendMessage = async () => {
       body: JSON.stringify({
         message,
         conversation_history,
-        user_uuid: userUuid.value
+        user_uuid: userUuid.value,
+        request_id: currentRequestId.value // 添加 requestId 到请求中
       })
     });
 
@@ -413,11 +416,15 @@ const sendMessage = async () => {
     scrollToBottom();
 
     if (result.request_id) {
+      currentRequestId.value = result.request_id; // 保存新的 requestId
+      processingState.value = 'generating';
       pollImageStatus(result.request_id);
+    } else {
+      processingState.value = 'idle';
     }
-    // 如果铸币成功,刷新 NFT 列表
+    
     if (result.mintSuccess) {
-      await fetchNFTs(); // 自动刷新 NFT 列表
+      await fetchNFTs();
     }
   } catch (error) {
     console.error('Error:', error);
@@ -429,17 +436,18 @@ const sendMessage = async () => {
       time: formatTime(new Date())
     });
     scrollToBottom();
+    processingState.value = 'idle';
   } finally {
-    isProcessing.value = false;
+    scrollToBottom();
   }
 };
 
 // 更新图片状态轮询函数
 const pollImageStatus = async (requestId: string) => {
-  // 添加进度消息的 ID，用于后续更新和移除
+  processingState.value = 'generating';
+  
   const progressMessageId = Date.now();
   
-  // 添加等待消息
   messages.value.push({
     id: progressMessageId,
     type: 'text',
@@ -449,19 +457,22 @@ const pollImageStatus = async (requestId: string) => {
   });
   
   const checkStatus = async () => {
+    let currentStatus = null;
+    
     try {
-      processingState.value = 'generating';
       const response = await fetch(`${backendUrl}/generation-status/${requestId}`);
       const result = await response.json();
+      currentStatus = result.status; // 保存状态供 finally 块使用
 
       if (result.status === 'completed') {
         // 移除进度消息
         messages.value = messages.value.filter(m => m.id !== progressMessageId);
         
-        // 如果铸币成功,刷新 NFT 列表
-        if (result.mintSuccess) {
-          await fetchNFTs(); // 自动刷新 NFT 列表
-        }
+        // 检查文本内容中是否包含图片
+        const hasMarkdownImage = result.content && (
+          result.content.includes('![') || // 检查 Markdown 图片语法
+          /https?:\/\/[^\s<>"]+?\/[^\s<>"]+?\.(png|jpg|jpeg|gif|webp)/i.test(result.content) // 检查普通图片链接
+        );
 
         // 如果有文本内容，添加文本消息
         if (result.content) {
@@ -474,14 +485,16 @@ const pollImageStatus = async (requestId: string) => {
           });
         }
         
-        // 添加完成的图片消息
-        messages.value.push({
-          id: Date.now(),
-          type: 'image',
-          role: 'assistant',
-          content: result.urls[0],
-          time: formatTime(new Date())
-        });
+        // 只有当文本内容中没有图片时，才添加单独的图片消息
+        if (!hasMarkdownImage && result.urls?.[0]) {
+          messages.value.push({
+            id: Date.now(),
+            type: 'image',
+            role: 'assistant',
+            content: result.urls[0],
+            time: formatTime(new Date())
+          });
+        }
         
         processingState.value = 'idle';
         scrollToBottom();
@@ -499,13 +512,12 @@ const pollImageStatus = async (requestId: string) => {
         });
       } else {
         setTimeout(checkStatus, 2000);
+        return;
       }
     } catch (error) {
       console.error('Error checking image status:', error);
-      // 移除进度消息
       messages.value = messages.value.filter(m => m.id !== progressMessageId);
       
-      processingState.value = 'idle';
       messages.value.push({
         id: Date.now(),
         type: 'error',
@@ -513,6 +525,11 @@ const pollImageStatus = async (requestId: string) => {
         content: 'Error checking image generation status',
         time: formatTime(new Date())
       });
+    } finally {
+      // 使用保存的状态来决定是否重置 processingState
+      if (currentStatus === 'completed' || currentStatus === 'failed') {
+        processingState.value = 'idle';
+      }
     }
   };
 
@@ -568,10 +585,9 @@ const openNftLink = (contract: string, tokenId: string) => {
 
 // 更新重试函数
 const retryMessage = async (originalMessage: string) => {
-  if (isProcessing.value) return;
+  if (processingState.value !== 'idle') return;
   
   messages.value.pop();
-  isProcessing.value = true;
   processingState.value = 'thinking';
   
   const conversation_history = messages.value.map(msg => ({ 
@@ -615,7 +631,7 @@ const retryMessage = async (originalMessage: string) => {
       time: formatTime(new Date())
     });
   } finally {
-    isProcessing.value = false;
+    processingState.value = 'idle';
     scrollToBottom();
   }
 };
@@ -624,6 +640,19 @@ const retryMessage = async (originalMessage: string) => {
 const isLastMessage = (message: ChatMessage) => {
   return message === messages.value[messages.value.length - 1];
 };
+
+// 添加输入框引用
+const inputRef = ref<any>(null);
+
+// 修改 processingState 的 watch
+watch(processingState, (newState) => {
+  if (newState === 'idle') {
+    // 使用 nextTick 确保 DOM 更新后再设置焦点
+    nextTick(() => {
+      inputRef.value?.focus();
+    });
+  }
+});
 </script>
 
 <style scoped>
@@ -1273,7 +1302,7 @@ const isLastMessage = (message: ChatMessage) => {
   font-size: 18px;
 }
 
-/* 调整加载动画大小 */
+/* 整加载动画大小 */
 .input-container .n-button :deep(.n-spin) {
   font-size: 18px;
   width: 18px;
