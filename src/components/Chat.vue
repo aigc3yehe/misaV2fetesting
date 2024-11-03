@@ -196,8 +196,12 @@ const userAvatar = userAvatarImg
 const botAvatar = botAvatarImg
 
 const theme = ref(darkTheme)
-//const address = "0x091734AE3AAc8ed61e9341Bf2fDfe33E5e1D74CF"
-const address = "0x54C8d8d2838DE32327403FeeB41F7A91D02c02ec" // 新地址，晚点切换
+//const address = "0xccb6B629f5434102e37175BDac8262722180a62f" // 新地址，晚点切换
+const address = "0x54C8d8d2838DE32327403FeeB41F7A91D02c02ec" 
+
+// 添加钱包地址常量
+const walletAddress = "0xddcddbfc282721beacff99cc67137f728c5fb2fd";
+//const walletAddress = "0x900709432a8F2C7E65f90aA7CD35D0afe4eB7169";
 
 const inputMessage = ref('')
 const messages = ref<ChatMessage[]>([
@@ -412,6 +416,19 @@ const sendMessage = async () => {
     });
 
     const result = await response.json();
+    
+    // 添加对 full 状态的处理
+    if (result.status === 'full') {
+      messages.value.push({
+        id: Date.now() + 1,
+        type: 'error',
+        role: 'system',
+        content: result.content,
+        time: formatTime(new Date())
+      });
+      processingState.value = 'idle';
+      return;
+    }
     
     if (result.error) {
       throw new Error(result.error.message);
@@ -672,8 +689,7 @@ watch(processingState, (newState) => {
   }
 });
 
-// 添加钱包地址常量
-const walletAddress = "0xddcddbfc282721beacff99cc67137f728c5fb2fd";
+
 
 // 添加复制钱包地址的方法
 const copyWalletAddress = async () => {
@@ -1121,6 +1137,7 @@ const copyWalletAddress = async () => {
   width: fit-content;
   min-width: 60px;
 }
+
 
 /* 调整 markdown 内容的间距 */
 .message-content-card :deep(.markdown-body) {
