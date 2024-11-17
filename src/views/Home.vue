@@ -46,15 +46,28 @@
           </n-button>
         </div>
         
-        <n-button quaternary class="wallet-button" :class="{ 'connected': isConnected }">
+        <n-button 
+          quaternary 
+          class="wallet-button" 
+          :class="{ 'connected': isConnected }"
+          @click="handleWalletClick"
+        >
           <template #icon>
             <n-icon class="wallet-icon">
-              <WalletIcon v-if="!isConnected" />
-              <WalletConnectedIcon v-else />
+              <div class="wallet-icon-wrapper">
+                <template v-if="isConnected && walletStore.walletInfo">
+                  <img 
+                    :src="walletStore.walletInfo.icon" 
+                    :alt="walletStore.walletInfo.name"
+                    class="main-wallet-icon"
+                  />
+                  <SmallBaseIcon class="status-icon" />
+                </template>
+                <WalletIcon v-else />
+              </div>
             </n-icon>
           </template>
-          <span v-if="isConnected">{{ formatAddress(walletAddress) }}</span>
-          <span v-else>Connect Wallet</span>
+          {{ isConnected ? formatAddress(address || '') : 'Connect Wallet' }}
         </n-button>
       </div>
     </header>
@@ -79,7 +92,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, h, watch } from 'vue'
 import { NIcon, NButton, NConfigProvider } from 'naive-ui'
 import { darkTheme } from 'naive-ui'
 import ChatPanel from '@/components/chat/ChatPanel.vue'
@@ -95,15 +108,41 @@ import DocsIconHover from '@/assets/icons/docs-hover.svg?component'
 import LogoIcon from '@/assets/icons/logo.svg?component'
 import MisatoStudioIcon from '@/assets/icons/misato_studio.svg?component'
 import WalletIcon from '@/assets/icons/metamask.svg?component'
-import WalletConnectedIcon from '@/assets/icons/metamask.svg?component'
+import SmallBaseIcon from '@/assets/icons/small_base.svg?component'
+import { useWallet } from '@/composables/useWallet'
+import { useDialog } from 'naive-ui'
+import { useWalletStore } from '@/stores/wallet'
 
 const theme = ref(darkTheme)
-const isConnected = ref(false)
-const walletAddress = ref('')
+const { isConnected, address, handleConnect, handleDisconnect, formatAddress } = useWallet()
+const dialog = useDialog()
+const walletStore = useWalletStore()
 
-const formatAddress = (address: string) => {
-  if (!address) return ''
-  return `${address.slice(0, 6)}...${address.slice(-4)}`
+watch(() => isConnected.value, (newValue) => {
+  walletStore.setConnected(newValue)
+  if (newValue && address.value) {
+    walletStore.setUserWalletAddress(address.value)
+  }
+}, { immediate: true })
+
+const handleWalletClick = async () => {
+  try {
+    if (isConnected.value) {
+      dialog.warning({
+        title: 'Disconnect Wallet',
+        content: () => h('div', null, 'Are you sure you want to disconnect your wallet?'),
+        positiveText: 'Confirm',
+        negativeText: 'Cancel',
+        onPositiveClick: async () => {
+          await handleDisconnect()
+        }
+      })
+    } else {
+      await handleConnect()
+    }
+  } catch (error) {
+    console.error('Wallet operation error:', error)
+  }
 }
 </script>
 
@@ -239,16 +278,17 @@ const formatAddress = (address: string) => {
   border-radius: 20px;
   padding: 6px 12px;
   background: rgba(255, 255, 255, 0.07);
+  color: #707A8A;
 }
 
 .wallet-button.connected {
   background: var(--brand-secondary);
-  color: var(--sl-color-gray-900);
+  color: #707A8A;
 }
 
 .wallet-button:hover {
   background: var(--brand-primary);
-  color: var(--sl-color-gray-900);
+  color: #707A8A;
 }
 
 :deep(.n-button) {
@@ -319,5 +359,35 @@ const formatAddress = (address: string) => {
 
 .wallet-button {
   background: rgba(255, 255, 255, 0.07) !important;
+}
+
+.wallet-icon-wrapper {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.main-wallet-icon {
+  width: 24px;
+  height: 24px;
+  margin: 2px;
+}
+
+.status-icon {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 12px;
+  height: 12px;
+  z-index: 1;
+}
+
+/* 确保 WalletIcon 也有正确的尺寸 */
+:deep(svg) {
+  width: 28px;
+  height: 28px;
 }
 </style>

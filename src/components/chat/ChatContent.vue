@@ -41,7 +41,7 @@
               </template>
               <template v-if="message.show_status === 'send_eth'">
                 <div class="eth-buttons">
-                  <n-button class="eth-button" @click="sendEth" icon-placement="right">
+                  <n-button class="eth-button" @click="handleSendEth" icon-placement="right">
                     Send ETH
                     <template #icon>
                       <n-icon><ETHIcon /></n-icon>
@@ -101,8 +101,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch } from 'vue'
-import { useMessage } from 'naive-ui'
+import { ref, computed, nextTick, watch, h } from 'vue'
+import { useMessage, useDialog } from 'naive-ui'
 import type { ScrollbarInst } from 'naive-ui'
 import { v4 as uuidv4 } from 'uuid'
 import { useChatStore } from '@/stores'
@@ -111,12 +111,28 @@ import SendIcon from '@/assets/icons/send.svg?component'
 import SendIconHover from '@/assets/icons/send-hover.svg?component'
 import ETHIcon from '@/assets/icons/ETH.svg?component'
 import SmallRefreshIcon from '@/assets/icons/small-refresh.svg?component'
+import { useSendTransaction, useWaitForTransactionReceipt } from '@wagmi/vue'
+import { parseEther } from 'viem'
+import { useWalletStore } from '@/stores'
 
 const message = useMessage()
+const walletStore = useWalletStore()
+const dialog = useDialog()
 const chatStore = useChatStore()
 const inputMessage = ref('')
 const scrollbarRef = ref<ScrollbarInst | null>(null)
 const inputRef = ref<any>(null)
+
+const { 
+  data: hash,
+  error,
+  isPending,
+  sendTransaction 
+} = useSendTransaction()
+
+const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+  hash,
+})
 
 // 添加对消息列表的监听
 watch(
@@ -234,12 +250,53 @@ const closeImagePreview = () => {
   previewImageUrl.value = ''
 }
 
-const sendEth = () => {
-  // 实现发送 ETH 的逻辑
+const sendEth = async () => {
+  try {
+    if (!walletStore.isConnected) {
+      message.error('Please connect your wallet first')
+      return
+    }
+
+    const to = walletStore.misatoWalletAddress // MISATO的钱包地址作为接收方
+    const value = '0.05' // ETH数量
+    
+    await sendTransaction({ 
+      to: to as `0x${string}`, 
+      value: parseEther(value) 
+    })
+
+    if (error?.value) {
+      message.error(`Transaction failed: ${error.value?.message}`)
+      return
+    }
+
+    message.success('Transaction sent!')
+  } catch (err: any) {
+    console.error('Send ETH error:', err)
+    message.error(err.message || 'Failed to send ETH')
+  }
+}
+
+const handleSendEth = () => {
+  dialog.warning({
+    title: 'Send ETH',
+    content: () => h('div', null, [
+      h('p', null, `Are you sure you want to send 0.05 ETH to MISATO?`),
+      h('p', { style: 'margin-top: 8px; font-size: 12px; color: #999;' }, 
+        `Recipient: ${walletStore.misatoWalletAddress}`)
+    ]),
+    positiveText: 'Confirm',
+    negativeText: 'Cancel',
+    onPositiveClick: sendEth
+  })
 }
 
 const checkPayment = () => {
-  // 实现检查支付状态的逻辑
+  if (hash) {
+    window.open(`https://etherscan.io/tx/${hash}`, '_blank')
+  } else {
+    message.warning('No transaction found')
+  }
 }
 </script>
 

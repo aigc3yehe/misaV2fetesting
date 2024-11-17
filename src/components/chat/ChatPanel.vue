@@ -17,8 +17,8 @@
         </div>
         <div class="wallet-content">
           <n-text class="wallet-content-text">MISATO's wallet</n-text>
-          <n-text code class="hidden-address">{{ walletStore.walletAddress }}</n-text>
-          <n-button class="copy-button" @click="copyWalletAddress">
+          <n-text code class="hidden-address">{{ walletStore.misatoWalletAddress }}</n-text>
+          <n-button class="copy-button" @click="copyMisatoWalletAddress">
             Copy
           </n-button>
         </div>
@@ -76,7 +76,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import ChevronUpIcon from '@/assets/icons/chevron-up-r.svg?component'
 import ChevronDownIcon from '@/assets/icons/chevron-down-r.svg?component'
 import { useMessage } from 'naive-ui'
@@ -86,20 +86,22 @@ import LogoIcon from '@/assets/icons/small_logo.svg?component'
 import UnityGame from '../UnityGame.vue'
 import ChatContent from './ChatContent.vue'
 import LoadingIcon from '@/assets/icons/loading.svg?component'
+import { useWallet } from '@/composables/useWallet'
 
 const isExpanded = ref(true)
 const walletStore = useWalletStore()
 const message = useMessage()
 const chatState = ref<'ready' | 'queuing' | 'not-connected'>('not-connected')
 const show = ref(true)
+const { handleConnect } = useWallet()
 
 const toggleExpand = () => {
   isExpanded.value = !isExpanded.value
 }
 
-const copyWalletAddress = async () => {
+const copyMisatoWalletAddress = async () => {
   try {
-    await navigator.clipboard.writeText(walletStore.walletAddress)
+    await navigator.clipboard.writeText(walletStore.misatoWalletAddress)
     message.success('Copy success')
   } catch (err) {
     console.error('Copy error:', err)
@@ -111,9 +113,23 @@ const handleTryConnect = () => {
   // 处理重新连接逻辑
 }
 
-const handleConnectWallet = () => {
-  // 处理连接钱包逻辑
+const handleConnectWallet = async () => {
+  try {
+    await handleConnect()
+    if (walletStore.isConnected) {
+      chatState.value = 'ready'
+    }
+  } catch (error) {
+    console.error('Failed to connect wallet:', error)
+    message.error('Failed to connect wallet')
+  }
 }
+
+// 监听钱包状态变化
+watch(() => walletStore.isConnected, (newValue) => {
+  console.log('Wallet connection status changed:', newValue)
+  chatState.value = newValue ? 'ready' : 'not-connected'
+}, { immediate: true })
 </script>
 
 <style scoped>

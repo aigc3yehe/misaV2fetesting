@@ -2,20 +2,30 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 
 export const useWalletStore = defineStore('wallet', () => {
-  // 状态
-  const walletAddress = ref('0x900709432a8F2C7E65f90aA7CD35D0afe4eB7169')
+  // MISATO 的固定钱包地址
+  const misatoWalletAddress = ref('0x900709432a8F2C7E65f90aA7CD35D0afe4eB7169')
+  // 用户连接的钱包地址
+  const userWalletAddress = ref('')
   const isConnected = ref(false)
   const userUuid = ref('')
+  const walletInfo = ref<{
+    name: string;
+    icon: string;
+  } | null>(null)
 
   // Actions
-  const setWalletAddress = (address: string) => {
-    walletAddress.value = address
-    isConnected.value = true
+  const setUserWalletAddress = (address: string) => {
+    userWalletAddress.value = address
+  }
+
+  const setConnected = (status: boolean) => {
+    isConnected.value = status
   }
 
   const disconnectWallet = () => {
-    walletAddress.value = ''
+    userWalletAddress.value = ''
     isConnected.value = false
+    walletInfo.value = null
   }
 
   const getOrCreateUuid = () => {
@@ -33,15 +43,21 @@ export const useWalletStore = defineStore('wallet', () => {
     return newUuid
   }
 
+  const setWalletInfo = (info: { name: string; icon: string }) => {
+    walletInfo.value = info
+  }
+
   return {
-    // 状态
-    walletAddress,
+    misatoWalletAddress, // MISATO 的钱包地址
+    userWalletAddress,   // 用户的钱包地址
     isConnected,
     userUuid,
+    walletInfo,
     
-    // Actions
-    setWalletAddress,
+    setUserWalletAddress,
+    setConnected,
     disconnectWallet,
-    getOrCreateUuid
+    getOrCreateUuid,
+    setWalletInfo
   }
 }) 

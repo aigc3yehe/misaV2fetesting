@@ -28,22 +28,45 @@ export const useNFTStore = defineStore('nft', () => {
     nftError.value = ''
     
     try {
-      let pageKey = null
+      let pageKey: string | null = null
       let allNfts: NFT[] = []
 
       do {
-        const queryParams = new URLSearchParams({
+        const queryParams: URLSearchParams = new URLSearchParams({
           contractAddress: CONTRACT_ADDRESS,
           withMetadata: 'true',
           limit: '500',
           ...(pageKey && { pageKey })
         })
 
-        const response = await fetch(
+        const response: Response = await fetch(
           `${API_CONFIG.baseUrl}/${API_CONFIG.apiKey}/getNFTsForContract?${queryParams}`
         )
         
-        const data = await response.json()
+        interface NFTResponse {
+          nfts: Array<{
+            tokenId: string
+            name?: string
+            raw?: {
+              metadata?: {
+                name?: string
+                image?: string
+                description?: string
+              }
+            }
+            image?: {
+              originalUrl?: string
+              cachedUrl?: string
+            }
+            description?: string
+            contract: {
+              address: string
+            }
+          }>
+          pageKey?: string
+        }
+        
+        const data: NFTResponse = await response.json()
         
         const newNfts = data.nfts.map((nft: any) => ({
           id: nft.tokenId,
@@ -54,7 +77,7 @@ export const useNFTStore = defineStore('nft', () => {
         }))
         
         allNfts = [...allNfts, ...newNfts]
-        pageKey = data.pageKey
+        pageKey = data.pageKey || null
       } while (pageKey)
 
       nfts.value = allNfts.sort((a, b) => Number(b.id) - Number(a.id))
