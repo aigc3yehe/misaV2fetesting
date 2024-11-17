@@ -34,7 +34,7 @@
           <span class="chat-title-text">$MISATO</span>
         </div>
         
-        <div class="expand-handle" @click="toggleExpand">
+        <div class="expand-handle clickable" @click="toggleExpand">
           <n-icon class="expand-icon">
             <ChevronDownIcon v-if="isExpanded" />
             <ChevronUpIcon v-else />

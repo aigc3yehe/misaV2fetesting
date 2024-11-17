@@ -68,7 +68,9 @@
             </n-message-provider>
           </template>
           <template #2>
-            <!-- <NFTGallery /> -->
+            <n-message-provider>
+              <NFTGallery />
+            </n-message-provider>
           </template>
         </n-split>
       </n-config-provider>

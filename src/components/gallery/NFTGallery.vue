@@ -1,35 +1,51 @@
 <template>
-  <n-card class="gallery-card">
-    <template #header>
-      <div class="gallery-header">
-        <div class="gallery-title">
-          <span>MISATO Frens</span>
-          <n-button circle size="small" @click="nftStore.fetchNFTs">
-            <template #icon>
-              <n-icon><RefreshIcon /></n-icon>
-            </template>
-          </n-button>
-        </div>
-        <div class="contract-address">
-          <n-text code>{{ nftStore.CONTRACT_ADDRESS }}</n-text>
-          <n-button circle size="tiny" @click="copyAddress" class="copy-button">
-            <template #icon>
-              <n-icon><CopyIcon /></n-icon>
-            </template>
-          </n-button>
+  <div class="gallery-container">
+    <!-- 导航栏 -->
+    <div class="nav-header">
+      <!-- 返回按钮行 -->
+      <div class="back-row">
+        <div class="back-button clickable">
+          <ArrowLeftIcon />
+          <span class="back-text">Back</span>
         </div>
       </div>
-    </template>
+      
+      <!-- 标题行 -->
+      <div class="title-row">
+        <div class="left-section">
+          <div class="icon-button clickable" @click="nftStore.fetchNFTs">
+            <RefreshIcon class="icon-default" />
+            <RefreshIconHover class="icon-hover" />
+          </div>
+          <img src="@/assets/avatar.png" class="avatar" alt="Misato" />
+          <n-icon class="misato-frens-icon">
+            <MisatoFrensIcon />
+          </n-icon>
+          <div class="icon-button clickable" @click="copyAddress">
+            <CopyIcon class="icon-default" />
+            <CopyIconHover class="icon-hover" />
+          </div>
+          <div class="icon-button clickable" @click="copyAddress">
+            <MisatoMeIcon class="icon-default" />
+            <MisatoMeHover class="icon-hover" />
+          </div>
+        </div>
+        <div class="right-section">
+          <n-checkbox class="clickable">Owned</n-checkbox>
+        </div>
+      </div>
+    </div>
 
+    <!-- 原有的滚动内容区域 -->
     <n-scrollbar>
       <div v-if="nftStore.isLoadingNFTs" class="loading-container">
         <n-spin size="large" />
       </div>
       <div v-else class="nft-grid">
-        <n-card v-for="nft in nftStore.nfts" 
-                :key="nft.id" 
-                class="nft-card"
-                @click="openNftLink(nft.contract, nft.id)">
+        <div v-for="nft in nftStore.nfts" 
+             :key="nft.id" 
+             class="nft-card clickable"
+             @click="openNftLink(nft.contract, nft.id)">
           <div class="nft-image-wrapper">
             <img :src="nft.image" 
                  class="nft-image" 
@@ -37,21 +53,26 @@
                  alt="NFT Image">
           </div>
           <div class="nft-info">
-            <p class="nft-name">
-              <span class="name-text">{{ nft.name }}</span>
-            </p>
+            <p class="nft-name">{{ nft.name }}</p>
           </div>
-        </n-card>
+        </div>
       </div>
     </n-scrollbar>
-  </n-card>
+  </div>
 </template>
 
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { useNFTStore } from '@/stores'
-import { RefreshOutline as RefreshIcon, Copy as CopyIcon } from '@vicons/ionicons5'
 import defaultNftImage from '@/assets/misato-avatar.png'
+import ArrowLeftIcon from '@/assets/icons/arrow-left.svg?component'
+import RefreshIcon from '@/assets/icons/refresh-r.svg?component'
+import RefreshIconHover from '@/assets/icons/refresh-r.svg?component'
+import CopyIcon from '@/assets/icons/copy.svg?component'
+import CopyIconHover from '@/assets/icons/copy.svg?component'
+import MisatoMeIcon from '@/assets/icons/misato_me.svg?component'
+import MisatoMeHover from '@/assets/icons/misato_me.svg?component'
+import MisatoFrensIcon from '@/assets/icons/MISATO_frens.svg?component'
 import { useMessage } from 'naive-ui'
 
 const message = useMessage()
@@ -83,19 +104,202 @@ const handleImageError = (e: Event) => {
 </script>
 
 <style scoped>
-.gallery-card {
+.gallery-container {
   height: 100%;
   display: flex;
+  padding: 0 0 0 8px;
   flex-direction: column;
+  background: #131313;
+}
+
+.nav-header {
+  padding: 16px 24px;
+}
+
+.back-row {
+  margin-bottom: 16px;
+}
+
+.back-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #707A8A;
+  font-family: 'PPNeueBit', monospace;
+  font-size: 16px;
+  cursor: pointer;
+  width: fit-content;
+  padding: 4px 8px;
+  margin-left: -8px;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+}
+
+.back-button:hover {
+  background: rgba(250, 117, 255, 0.1);
+}
+
+.back-button svg {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.back-text {
+  line-height: 16px;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+.title-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.left-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+}
+
+.misato-frens-icon {
+  color: var(--brand-secondary);
+  display: flex;
+  align-items: center;
+  width: 214px !important;
+  height: 16px !important;
+}
+
+.misato-frens-icon :deep(svg) {
+  width: 214px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.misato-frens-icon:deep(.n-icon) {
+  width: 214px !important;
+  height: 16px !important;
+  font-size: 32px !important;
+}
+
+.title-text {
+  color: #FA75FF;
+  font-family: 'PPNeueBit', monospace;
+  font-size: 16px;
+}
+
+.contract-code {
+  font-size: 14px;
+  color: #666;
+}
+
+.right-section :deep(.n-checkbox) {
+  --n-label-color: #FA75FF;
+  font-family: 'PPNeueBit', monospace;
 }
 
 .nft-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, 200px);
   gap: 16px;
-  padding: 16px;
-  justify-content: start;
-  padding-left: 28px;
+  justify-content: space-between;
+  margin-left: 24px;
+  background: #131313;
+}
+
+.icon-button {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background-color 0.2s;
+}
+
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.icon-button svg {
+  width: 24px;
+  height: 24px;
+}
+
+.icon-default {
+  display: block;
+}
+
+.icon-hover {
+  display: none;
+}
+
+.icon-button:hover .icon-default {
+  display: none;
+}
+
+.icon-button:hover .icon-hover {
+  display: block;
+}
+
+:deep(.n-button) {
+  --n-color: transparent !important;
+  --n-color-hover: transparent !important;
+  --n-color-pressed: transparent !important;
+  --n-border: none !important;
+  --n-border-hover: none !important;
+  --n-border-pressed: none !important;
+}
+
+.nft-card {
+  width: 200px;
+  height: 272px;
+  background: #1B1B1B;
+  border-radius: 16px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.nft-card:hover {
+  border: 2px solid #FA75FF;
+}
+
+.nft-image-wrapper {
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+}
+
+.nft-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.nft-info {
+  padding: 12px;
+}
+
+.nft-name {
+  color: #fff;
+  font-size: 20px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* 其他样式保持不变... */

@@ -89,3 +89,23 @@ textarea,
 select {
   font-family: var(--font-family-base);
 }
+
+/* 设置默认光标样式 */
+:root {
+  cursor: default;
+}
+
+/* 为所有可交互元素设置自定义光标 */
+*[onclick],
+*[href],
+button,
+a,
+select,
+input[type="submit"],
+input[type="button"],
+input[type="radio"],
+input[type="checkbox"],
+.clickable,
+[role="button"] {
+  cursor: url('@/assets/pointing.png'), pointer !important;
+}
