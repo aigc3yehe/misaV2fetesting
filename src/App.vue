@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import Chat from './components/Chat.vue'
 import UnityGame from './components/UnityGame.vue'
-import Home from './Home.vue'
+import Home from './views/Home.vue'
 </script>
 
 <template>
-  <Home />
+  <!-- <Home /> -->
+  <router-view></router-view>
   <!-- <n-message-provider>
     <Chat />
   </n-message-provider> -->

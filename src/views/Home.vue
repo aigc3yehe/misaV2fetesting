@@ -5,6 +5,9 @@
         <n-icon size="32" class="logo-icon">
           <LogoIcon />
         </n-icon>
+        <n-icon class="misato-studio-icon">
+          <MisatoStudioIcon />
+        </n-icon>
         <h1 class="title">MISATO Studio</h1>
       </div>
       <div class="header-right">
@@ -55,11 +58,30 @@
         </n-button>
       </div>
     </header>
+
+    <main class="main-content">
+      <n-config-provider :theme="theme">
+        <n-split direction="horizontal" :default-size="0.42" :max="0.75" :min="0.42">
+          <template #1>
+            <n-message-provider>
+              <ChatPanel />
+            </n-message-provider>
+          </template>
+          <template #2>
+            <!-- <NFTGallery /> -->
+          </template>
+        </n-split>
+      </n-config-provider>
+    </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { NIcon, NButton, NButtonGroup } from 'naive-ui'
+import { ref, computed } from 'vue'
+import { NIcon, NButton, NConfigProvider } from 'naive-ui'
+import { darkTheme } from 'naive-ui'
+import ChatPanel from '@/components/chat/ChatPanel.vue'
+import NFTGallery from '@/components/gallery/NFTGallery.vue'
 import XIcon from '@/assets/icons/x.svg?component'
 import XIconHover from '@/assets/icons/x-hover.svg?component'
 import GithubIcon from '@/assets/icons/github.svg?component'
@@ -69,10 +91,11 @@ import TelegramIconHover from '@/assets/icons/tg-hover.svg?component'
 import DocsIcon from '@/assets/icons/docs.svg?component'
 import DocsIconHover from '@/assets/icons/docs-hover.svg?component'
 import LogoIcon from '@/assets/icons/logo.svg?component'
+import MisatoStudioIcon from '@/assets/icons/misato_studio.svg?component'
 import WalletIcon from '@/assets/icons/metamask.svg?component'
 import WalletConnectedIcon from '@/assets/icons/metamask.svg?component'
-import { ref, computed } from 'vue'
 
+const theme = ref(darkTheme)
 const isConnected = ref(false)
 const walletAddress = ref('')
 
@@ -84,18 +107,53 @@ const formatAddress = (address: string) => {
 
 <style scoped>
 .home {
-  height: 100%;
-  width: 100%;
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
 }
 
 .header {
   height: 64px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 24px;
   background: var(--sl-color-gray-900);
   border-bottom: 1px solid var(--sl-color-gray-800);
+}
+
+.main-content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.n-config-provider) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.n-split) {
+  flex: 1;
+  min-height: 0;
+}
+
+:deep(.n-split-pane) {
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+:deep(.n-split-pane-1) {
+  background: transparent;
+}
+
+:deep(.n-split-pane-2) {
+  background: var(--sl-color-gray-900);
 }
 
 .header-left {
@@ -127,7 +185,30 @@ const formatAddress = (address: string) => {
   font-size: 32px !important;
 }
 
+.misato-studio-icon {
+  color: var(--brand-secondary);
+  display: flex;
+  align-items: center;
+  width: 181px !important;
+  height: 13px !important;
+}
+
+.misato-studio-icon :deep(svg) {
+  width: 181px;
+  height: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.misato-studio-icon:deep(.n-icon) {
+  width: 181px !important;
+  height: 13px !important;
+  font-size: 32px !important;
+}
+
 .title {
+  display: none;
   font-family: 'PPNeueBit', monospace;
   font-size: 28px;
   font-weight: 400;

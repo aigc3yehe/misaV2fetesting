@@ -7,9 +7,9 @@
     </div>
     
     <!-- Unity 容器 -->
-    <div id="unity-container" class="unity-desktop" style="display: none;">
+    <div id="unity-container" class="unity-desktop">
       <!-- 加载进度条 -->
-      <div id="unity-loading-bar" ref="loadingBarRef">
+      <div id="unity-loading-bar" ref="loadingBarRef" v-show="loading">
         <div id="unity-progress-bar-full" :style="{ width: `${loadingProgress}%` }"></div>
         <p id="loadingtext" class="loading-text">
           玩命正在加载：{{ loadingProgress.toFixed(2) }}%
@@ -18,34 +18,14 @@
 
       <canvas id="unity-canvas" ref="unityCanvas"></canvas>
       
-      <!-- 警告信息 -->
       <div id="unity-warning"></div>
       <div id="unity-footer"></div>
-    </div>
-
-    <!-- 添加聊天输入框 -->
-    <div class="chat-input-container">
-      <n-input
-        v-model:value="chatMessage"
-        type="text"
-        placeholder="输入聊天内容"
-        @keyup.enter="sendMessage"
-        @input="handleInput"
-      >
-        <template #suffix>
-          <n-button type="primary" ghost @click="sendMessage">
-            发送
-          </n-button>
-        </template>
-      </n-input>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
-import { getDevicePixelRatio } from '@/utils/unityUtils'
-import { NInput, NButton } from 'naive-ui'
 
 const unityCanvas = ref<HTMLCanvasElement | null>(null)
 const starsRef = ref<HTMLElement | null>(null)
@@ -53,81 +33,57 @@ const loadingBarRef = ref<HTMLElement | null>(null)
 const loading = ref(true)
 const loadingProgress = ref(0)
 
-// 添加聊天相关的代码
-const chatMessage = ref('')
-
 // 显示警告/错误信息
 const unityShowBanner = (msg: string, type: 'error' | 'warning') => {
-  const warningBanner = document.querySelector("#unity-warning");
-  if (!warningBanner) return;
+  const warningBanner = document.querySelector("#unity-warning")
+  if (!warningBanner) return
   
-  const div = document.createElement('div');
-  div.innerHTML = msg;
+  const div = document.createElement('div')
+  div.innerHTML = msg
   
   if (type === 'error') {
-    div.style.cssText = 'background: red; padding: 10px;';
+    div.style.cssText = 'background: red; padding: 10px;'
   } else {
-    div.style.cssText = 'background: yellow; padding: 10px;';
+    div.style.cssText = 'background: yellow; padding: 10px;'
     setTimeout(() => {
-      warningBanner.removeChild(div);
-    }, 5000);
+      warningBanner.removeChild(div)
+    }, 5000)
   }
   
-  warningBanner.appendChild(div);
+  warningBanner.appendChild(div)
 }
 
 const handleResize = () => {
   if (unityCanvas.value) {
-    unityCanvas.value.style.width = `${window.innerWidth}px`
-    unityCanvas.value.style.height = `${window.innerHeight}px`
+    unityCanvas.value.style.width = '100%'
+    unityCanvas.value.style.height = '100%'
   }
 }
 
 // Unity 加载完成的回调
 const UnityStartCallback = (instance: any) => {
-  if (loadingBarRef.value) loadingBarRef.value.style.opacity = '0'
+  loading.value = false
+  if (loadingBarRef.value) loadingBarRef.value.style.display = 'none'
   if (starsRef.value) starsRef.value.style.opacity = '0'
   if (unityCanvas.value) unityCanvas.value.style.opacity = '1'
 
   // 判断是否是移动设备
-  const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   instance.SendMessage('PlatformSystem', 'NotificationPlatform', mobile ? "0" : "1")
-
-  setTimeout(() => {
-    instance.SendMessage('JSCall', 'AddVoice', "{\"content\": \"我会陪你聊天\",\"finish\": false}")
-    instance.SendMessage('JSCall', 'AddVoice', "{\"content\": \"跟你讲故事\",\"finish\": true}")
-  }, 2000)
-}
-
-const sendMessage = () => {
-  if (!chatMessage.value.trim()) return
-  
-  // 发送消息到 Unity
-  if (window.unityInstance) {
-    window.unityInstance.SendMessage('JSCall', 'AddVoice', JSON.stringify({
-      content: chatMessage.value,
-      finish: true
-    }))
-    chatMessage.value = '' // 清空输入框
-  }
-}
-
-const handleInput = (value: string) => {
-  chatMessage.value = value
 }
 
 onMounted(() => {
   // 检查移动设备
-  const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   if (mobile) {
-    const meta = document.createElement('meta');
-    meta.name = 'viewport';
-    meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
-    document.getElementsByTagName('head')[0].appendChild(meta);
+    const meta = document.createElement('meta')
+    meta.name = 'viewport'
+    meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes'
+    document.getElementsByTagName('head')[0].appendChild(meta)
     
-    const container = document.querySelector("#unity-container");
-    if (container) container.className = "unity-mobile";
-    if (unityCanvas.value) unityCanvas.value.className = "unity-mobile";
+    const container = document.querySelector("#unity-container")
+    if (container) container.className = "unity-mobile"
+    if (unityCanvas.value) unityCanvas.value.className = "unity-mobile"
   }
 
   handleResize()
@@ -163,7 +119,6 @@ onMounted(() => {
       progress = Math.min(1, Math.max(0, progress))
       loadingProgress.value = progress * 100
     }).then((unityInstance: any) => {
-      loading.value = false
       window.unityInstance = unityInstance
       UnityStartCallback(unityInstance)
     }).catch((message: string) => {
@@ -181,19 +136,22 @@ onUnmounted(() => {
 
 <style scoped>
 .unity-wrapper {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   position: relative;
   overflow: hidden;
   background: #1F1F20;
+  aspect-ratio: 16 / 9;
 }
 
 #unity-canvas {
   width: 100%;
   height: 100%;
   background: #1F1F20;
-  transition: opacity 1s;
   opacity: 0;
+  transition: opacity 1s;
+  image-rendering: -webkit-optimize-contrast;
+  -webkit-font-smoothing: antialiased;
 }
 
 #unity-loading-bar {
@@ -206,17 +164,18 @@ onUnmounted(() => {
   border: 1px solid #ccc;
   border-radius: 10px;
   transition: opacity 1s;
+  z-index: 10;
 }
 
 #unity-progress-bar-full {
   position: absolute;
   left: 0%;
   top: 0%;
-  width: 1%;
+  width: 0%;
   height: 100%;
   background-color: #ccc;
   border-radius: 10px;
-  transition: 400ms linear;
+  transition: width 400ms linear;
 }
 
 .loading-text {
@@ -224,8 +183,6 @@ onUnmounted(() => {
   color: white;
   font-size: 12px;
   white-space: nowrap;
-  margin-left: auto;
-  margin-right: auto;
   text-align: center;
 }
 
@@ -237,36 +194,55 @@ onUnmounted(() => {
   background: white;
   padding: 10px;
   display: none;
+  z-index: 10;
 }
 
-/* 添加聊天输入框样式 */
-.chat-input-container {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 300px;
-  z-index: 1000;
-  background: rgba(0, 0, 0, 0.5);
-  padding: 10px;
-  border-radius: 8px;
+/* 星空背景样式 */
+#stars {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: #1F1F20;
+  transition: opacity 1s;
+  z-index: 1;
 }
 
-:deep(.n-input) {
-  background: rgba(255, 255, 255, 0.9);
+#stars2 {
+  width: 100%;
+  height: 100%;
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==);
+  animation: animStar 100s linear infinite;
 }
 
-:deep(.n-button) {
-  margin-left: 8px;
+#stars3 {
+  width: 100%;
+  height: 100%;
+  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==);
+  animation: animStar 150s linear infinite;
 }
 
-.chat-input-container :deep(.n-input-wrapper) {
+@keyframes animStar {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-2000px);
+  }
+}
+
+#unity-container {
   position: relative;
-  z-index: 9999;
+  width: 100%;
+  height: 100%;
 }
 
-.chat-input-container :deep(.n-input__input-el) {
-  position: relative;
-  z-index: 9999;
+.unity-desktop {
+  width: 100%;
+  height: 100%;
+}
+
+.unity-mobile {
+  width: 100%;
+  height: 100%;
 }
 </style> 
