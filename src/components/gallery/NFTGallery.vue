@@ -4,7 +4,7 @@
     <div class="nav-header">
       <!-- 返回按钮行 -->
       <div class="back-row">
-        <div class="back-button clickable">
+        <div class="back-button clickable" @click="handleBack">
           <ArrowLeftIcon />
           <span class="back-text">Back</span>
         </div>
@@ -13,22 +13,21 @@
       <!-- 标题行 -->
       <div class="title-row">
         <div class="left-section">
-          <div class="icon-button clickable" @click="nftStore.fetchNFTs">
+          <div class="icon-button clickable" @click="nftStore.fetchNFTs(galleryStore.currentCollection?.contract)">
             <RefreshIcon class="icon-default" />
             <RefreshIconHover class="icon-hover" />
           </div>
-          <img src="@/assets/avatar.png" class="avatar" alt="Misato" />
-          <n-icon class="misato-frens-icon">
-            <MisatoFrensIcon />
-          </n-icon>
+          <img :src="galleryStore.currentCollection?.imageUrl" class="avatar" alt="Collection Avatar" />
+          <span class="title-text">{{ galleryStore.currentCollection?.name }}</span>
           <div class="icon-button clickable" @click="copyAddress">
             <CopyIcon class="icon-default" />
             <CopyIconHover class="icon-hover" />
           </div>
-          <div class="icon-button clickable" @click="copyAddress">
+          <div class="icon-button clickable" @click="openMagicEdenCollection">
             <MisatoMeIcon class="icon-default" />
             <MisatoMeHover class="icon-hover" />
           </div>
+          
         </div>
         <div class="right-section">
           <n-checkbox class="clickable">Owned</n-checkbox>
@@ -74,12 +73,16 @@ import MisatoMeIcon from '@/assets/icons/misato_me.svg?component'
 import MisatoMeHover from '@/assets/icons/misato_me.svg?component'
 import MisatoFrensIcon from '@/assets/icons/MISATO_frens.svg?component'
 import { useMessage } from 'naive-ui'
+import { useGalleryStore } from '@/stores'
 
 const message = useMessage()
 const nftStore = useNFTStore()
+const galleryStore = useGalleryStore()
 
 onMounted(() => {
-  nftStore.fetchNFTs()
+  if (galleryStore.currentCollection) {
+    nftStore.fetchNFTs(galleryStore.currentCollection.contract)
+  }
 })
 
 const copyAddress = async () => {
@@ -100,6 +103,18 @@ const openNftLink = (contract: string, tokenId: string) => {
 const handleImageError = (e: Event) => {
   const target = e.target as HTMLImageElement
   if (target) target.src = defaultNftImage
+}
+
+const handleBack = () => {
+  galleryStore.setCurrentView('featured')
+}
+
+const openMagicEdenCollection = () => {
+  if (galleryStore.currentCollection) {
+    const { chain, symbol } = galleryStore.currentCollection
+    const url = `https://magiceden.io/collections/${chain}/${symbol}`
+    window.open(url, '_blank')
+  }
 }
 </script>
 
@@ -193,9 +208,13 @@ const handleImageError = (e: Event) => {
 }
 
 .title-text {
-  color: #FA75FF;
-  font-family: 'PPNeueBit', monospace;
-  font-size: 16px;
+  color: #FFFFFF;
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 24px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
 }
 
 .contract-code {

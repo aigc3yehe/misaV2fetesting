@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
+import { useWalletStore } from './wallet'
 
 interface ChatMessage {
   id: number
@@ -11,34 +12,19 @@ interface ChatMessage {
 }
 
 export const useChatStore = defineStore('chat', () => {
-  const messages = ref<ChatMessage[]>([
-    {
-      id: 1,
-      type: 'text',
-      content: '\\### MISATO just opened her own studio! You can ask her about NFT purchases. Minting fee 0.002eth, total supply 500',
-      role: 'system',
-    },
-    {
-      id: 1,
-      type: 'text',
-      content: 'To ensure that the account has sufficient funds, please select a payment method.',
-      role: 'system',
-      show_status: 'send_eth'
-    },
-    {
-      id: 1,
-      type: 'text',
-      content: 'To ensure that the account ',
-      role: 'system',
-      show_status: 'send_eth'
-    },
-    {
-      id: 1,
-      type: 'error',
-      content: 'To ensure that the account has sufficient funds, please select a payment method.',
-      role: 'system'
-    }
-  ])
+  const walletStore = useWalletStore()
+  
+  // 初始欢迎消息
+  const initialMessage = {
+    id: 1,
+    type: 'text' as const,
+    content: '\\### MISATO just opened her own studio! You can ask her about NFT purchases. Minting fee 0.002eth, total supply 500',
+    role: 'system' as const,
+    time: undefined,
+    show_status: undefined
+  }
+
+  const messages = ref<ChatMessage[]>([initialMessage])
 
   const formatTime = (date: Date) => {
     const hours = date.getHours().toString().padStart(2, '0')
@@ -209,6 +195,16 @@ export const useChatStore = defineStore('chat', () => {
     checkStatus()
   }
 
+  // 添加重置消息的方法
+  const resetMessages = () => {
+    messages.value = [initialMessage]
+  }
+
+  // 监听钱包连接状态
+  watch(() => walletStore.isConnected, (newValue) => {
+    resetMessages()
+  })
+
   return {
     messages,
     processingState,
@@ -218,6 +214,7 @@ export const useChatStore = defineStore('chat', () => {
     removeLastMessage,
     sendMessage,
     pollImageStatus,
-    retryMessage
+    retryMessage,
+    resetMessages  // 导出重置方法以便需要时手动调用
   }
 }) 

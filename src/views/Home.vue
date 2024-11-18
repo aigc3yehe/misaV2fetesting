@@ -82,7 +82,8 @@
           </template>
           <template #2>
             <n-message-provider>
-              <NFTGallery />
+              <FeaturedCollection v-if="galleryStore.currentView === 'featured'" />
+              <NFTGallery v-else />
             </n-message-provider>
           </template>
         </n-split>
@@ -112,11 +113,14 @@ import SmallBaseIcon from '@/assets/icons/small_base.svg?component'
 import { useWallet } from '@/composables/useWallet'
 import { useDialog } from 'naive-ui'
 import { useWalletStore } from '@/stores/wallet'
+import { useGalleryStore } from '@/stores'
+import FeaturedCollection from '@/components/gallery/FeaturedCollection.vue'
 
 const theme = ref(darkTheme)
 const { isConnected, address, handleConnect, handleDisconnect, formatAddress } = useWallet()
 const dialog = useDialog()
 const walletStore = useWalletStore()
+const galleryStore = useGalleryStore()
 
 watch(() => isConnected.value, (newValue) => {
   walletStore.setConnected(newValue)

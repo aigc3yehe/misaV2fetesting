@@ -1,3 +1,5 @@
 export * from './chat'
 export * from './nft'
 export * from './wallet' 
+export * from './gallery'
+export * from './collection'

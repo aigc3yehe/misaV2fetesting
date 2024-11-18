@@ -23,7 +23,8 @@ export const useNFTStore = defineStore('nft', () => {
   }
 
   // Actions
-  const fetchNFTs = async () => {
+  const fetchNFTs = async (contractAddress: string | undefined) => {
+    if (!contractAddress) return
     isLoadingNFTs.value = true
     nftError.value = ''
     
@@ -33,7 +34,7 @@ export const useNFTStore = defineStore('nft', () => {
 
       do {
         const queryParams: URLSearchParams = new URLSearchParams({
-          contractAddress: CONTRACT_ADDRESS,
+          contractAddress: contractAddress,
           withMetadata: 'true',
           limit: '500',
           ...(pageKey && { pageKey })
