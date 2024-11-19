@@ -169,7 +169,8 @@ const handleRefresh = async () => {
   padding: 0 0 0 8px;
   flex-direction: column;
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  pointer-events: none;
 }
 
 .nav-header {
@@ -460,5 +461,15 @@ const handleRefresh = async () => {
 /* 确保卡片在网格中的位置变化是平滑的 */
 .nft-refresh-move {
   transition: transform 0.3s ease;
+}
+
+/* 添加这些选择器来恢复特定元素的点击事件 */
+.nav-header,
+.nft-grid,
+.back-button,
+.icon-button,
+.owned-filter,
+.nft-card {
+  pointer-events: auto;
 }
 </style> 

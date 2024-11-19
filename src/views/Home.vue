@@ -65,7 +65,13 @@
 
     <main class="main-content">
       <n-config-provider :theme="theme">
-        <n-split direction="horizontal" :default-size="0.42" :max="0.75" :min="0.42">
+        <n-split 
+          direction="horizontal" 
+          :default-size="0.42" 
+          :max="0.75" 
+          :min="0.42"
+          :resize-trigger-size="1"
+        >
           <template #1>
             <n-message-provider>
               <ChatPanel />
@@ -76,6 +82,9 @@
               <FeaturedCollection v-if="galleryStore.currentView === 'featured'" />
               <NFTGallery v-else />
             </n-message-provider>
+          </template>
+          <template #resize-trigger>
+            <div class="resize-trigger"></div>
           </template>
         </n-split>
       </n-config-provider>
@@ -158,6 +167,7 @@ const handleWalletClick = async () => {
   padding: 0 16px;
   background: var(--background-primary);
   position: relative;
+  z-index: 20;
 }
 
 .header::after {
@@ -204,28 +214,17 @@ const handleWalletClick = async () => {
 
 :deep(.n-split-pane-1) {
   background: transparent;
+  position: relative;
+  z-index: 5;
 }
 
 :deep(.n-split-pane-2) {
   position: relative;
   overflow: hidden;
+  background: var(--sl-color-gray-950, #09090b);
 }
 
-:deep(.n-split-pane-2)::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url('@/assets/icons/bg.svg');
-  background-repeat: repeat;
-  background-position: top center;
-  background-size: contain;
-  opacity: 1;
-  z-index: 0;
-}
-
+:deep(.n-split-pane-2)::before,
 :deep(.n-split-pane-2)::after {
   content: '';
   position: absolute;
@@ -233,12 +232,34 @@ const handleWalletClick = async () => {
   left: 0;
   width: 100%;
   height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+:deep(.n-split-pane-2)::before {
+  background-image: url('@/assets/icons/bg.svg');
+  background-repeat: repeat;
+  background-position: top center;
+  background-size: contain;
+  opacity: 1;
+}
+
+:deep(.n-split-pane-2)::after {
   background-image: url('@/assets/bg_line.png');
   background-repeat: no-repeat;
   background-position: top center;
   background-size: 100% 100%;
   opacity: 1;
-  z-index: 0;
+}
+
+:deep(.n-split-pane-2) > * {
+  position: relative;
+  z-index: 1;
+}
+
+:deep(.unity-wrapper) {
+  position: relative;
+  z-index: 3;
 }
 
 .header-left {
@@ -451,5 +472,16 @@ const handleWalletClick = async () => {
 .icon-wrapper :deep(svg) {
   width: 20px;
   height: 20px;
+}
+
+.resize-trigger {
+  height: 100%;
+  width: 1px;
+  background: var(--brand-primary, #F0F);
+  opacity: 0.3;
+}
+
+.resize-trigger:hover {
+  opacity: 0.6;
 }
 </style>

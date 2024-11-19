@@ -1,0 +1,15 @@
+<svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="t">
+<rect x="0.5" y="0.5" width="19" height="19" stroke="#2C0CB9"/>
+<g id="Vector">
+<path d="M9 14H11V12H9V14Z" fill="#2C0CB9"/>
+<path d="M11 12H13V10H11V12Z" fill="#2C0CB9"/>
+<path d="M13 10H15V8H13V10Z" fill="#2C0CB9"/>
+<path d="M15 8H17V6H15V8Z" fill="#2C0CB9"/>
+<path d="M11 14H9V12H11V14Z" fill="#2C0CB9"/>
+<path d="M9 12H7V10H9V12Z" fill="#2C0CB9"/>
+<path d="M7 10H5V8H7V10Z" fill="#2C0CB9"/>
+<path d="M5 8H3V6H5V8Z" fill="#2C0CB9"/>
+</g>
+</g>
+</svg>

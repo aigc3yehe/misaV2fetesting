@@ -26,50 +26,62 @@
 
       <!-- 聊天面板 -->
       <div class="chat-panel" :class="{ 'expanded': isExpanded }">
-        <!-- 添加标题挂件 -->
-        <div class="chat-title">
-          <n-icon class="chat-title-bg">
-            <ChatTitleBackgroundSVG />
-          </n-icon>
-          <span class="chat-title-text">$MISATO</span>
+        <div class="chat-header">
+          <div class="header-left">
+            <n-icon size="20" class="n-icon">
+              <ChatIcon />
+            </n-icon>
+            <span class="header-title">MISATO</span>
+          </div>
+          <div class="header-right">
+            <n-icon size="20" class="mode-icon clickable" @click="toggleExpand">
+              <TurboModeIcon v-if="isExpanded" />
+              <SimpleModeIcon v-else />
+            </n-icon>
+          </div>
         </div>
-        
-        <div class="expand-handle clickable" @click="toggleExpand">
-          <n-icon class="expand-icon">
-            <ChevronDownIcon v-if="isExpanded" />
-            <ChevronUpIcon v-else />
-          </n-icon>
-        </div>
-        <n-message-provider>
-          <template v-if="isExpanded">
-            <ChatContent v-if="chatState === 'ready'" />
-            <div v-else-if="chatState === 'queuing'" class="chat-state-container">
-              <n-spin :show="show">
-                <template #icon>
-                  <LoadingIcon class="loading-icon"/>
-                </template>
-              </n-spin>
-              <div class="state-message">
-                There are too many people at the moment, please wait<br/>
-                15 people are waiting...
+        <template v-if="isExpanded">
+          <n-message-provider>
+            <div class="chat-content-container">
+              <ChatContent v-if="chatState === 'ready'" />
+              <div v-else class="chat-state-wrapper">
+                <div class="chat-state-container">
+                  <!-- 顶部蓝条 -->
+                  <div class="blue-bar"></div>
+                  <!-- 内容区域 -->
+                  <div class="content-area">
+                    <!-- 排队中状态 -->
+                    <template v-if="chatState === 'queuing'">
+                      <n-icon size="32" class="loading-icon">
+                        <LoadingIcon />
+                      </n-icon>
+                      <div class="state-message">
+                        There are too many people at the moment, please wait<br/>
+                        15 people are waiting...
+                      </div>
+                      <n-button class="try-connect-btn" @click="handleTryConnect">
+                        Try to connect
+                      </n-button>
+                    </template>
+                    
+                    <!-- 未连接状态 -->
+                    <template v-if="chatState === 'not-connected'">
+                      <n-icon size="32" class="loading-icon">
+                        <LoadingIcon />
+                      </n-icon>
+                      <div class="state-message">
+                        Please connect your wallet first
+                      </div>
+                      <n-button class="try-connect-btn" @click="handleConnectWallet">
+                        Connect Wallet
+                      </n-button>
+                    </template>
+                  </div>
+                </div>
               </div>
-              <n-button class="try-connect-btn" @click="handleTryConnect">
-                Try to connect
-              </n-button>
             </div>
-            <div v-else-if="chatState === 'not-connected'" class="chat-state-container">
-              <n-icon size="48" class="wallet-icon">
-                <WalletIcon />
-              </n-icon>
-              <div class="state-message">
-                Please connect your wallet first
-              </div>
-              <n-button class="try-connect-btn" @click="handleConnectWallet">
-                Connect Wallet
-              </n-button>
-            </div>
-          </template>
-        </n-message-provider>
+          </n-message-provider>
+        </template>
       </div>
     </div>
   </div>
@@ -87,6 +99,9 @@ import UnityGame from '../UnityGame.vue'
 import ChatContent from './ChatContent.vue'
 import LoadingIcon from '@/assets/icons/loading.svg?component'
 import { useWallet } from '@/composables/useWallet'
+import ChatIcon from '@/assets/icons/chat_icon.svg'
+import SimpleModeIcon from '@/assets/icons/s.svg'
+import TurboModeIcon from '@/assets/icons/t.svg'
 
 const isExpanded = ref(true)
 const walletStore = useWalletStore()
@@ -147,6 +162,8 @@ watch(() => walletStore.isConnected, (newValue) => {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  z-index: 3;
+  pointer-events: auto;
 }
 
 .unity-background {
@@ -156,9 +173,9 @@ watch(() => walletStore.isConnected, (newValue) => {
 
 .chat-interface {
   position: relative;
-  z-index: 1;
+  z-index: 4;
   height: 100%;
-  pointer-events: none; /* 允许点击穿透到 Unity 背景 */
+  pointer-events: none;
 }
 
 .wallet-card {
@@ -166,16 +183,19 @@ watch(() => walletStore.isConnected, (newValue) => {
   top: 8px;
   right: 8px;
   width: 110px;
+  display: flex;
   padding: 8px;
-  background: rgba(255, 255, 255, 0.24); /* #FFFFFF3D */
-  backdrop-filter: blur(24px);
-  border-radius: 16px;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  align-self: stretch;
+  background: rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(12px);
 }
 
 .wallet-header {
   display: flex;
   justify-content: center;
-  padding-top: 8px;
 }
 
 .logo-icon {
@@ -205,6 +225,7 @@ watch(() => walletStore.isConnected, (newValue) => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
+  margin-top: -8px;
 }
 
 .wallet-content-text {
@@ -223,34 +244,26 @@ watch(() => walletStore.isConnected, (newValue) => {
 }
 
 .copy-button {
-  width: 94px;
+  display: flex;
   height: 24px;
   padding: 4px 0;
-  display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   gap: 6px;
-  background: rgba(255, 255, 255, 0.24) !important; /* #FFFFFF3D */
-  border-radius: 999px;
+  align-self: stretch;
+  background: rgba(0, 0, 0, 0.24) !important;
   color: #FFFFFF;
+  font-family: '04b03', monospace;
   font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
   transition: opacity 0.2s;
 }
 
 .copy-button:hover {
+  color: var(--brand-primary) !important; /* 使用品牌主色（粉色） */
   opacity: 0.8;
-}
-
-/* 覆盖 naive-ui 按钮的默认样式 */
-.copy-button:deep(.n-button__icon) {
-  font-size: 14px;
-  margin: 0;
-}
-
-.copy-button:deep(.n-button__content) {
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
 
 .chat-panel {
@@ -258,97 +271,92 @@ watch(() => walletStore.isConnected, (newValue) => {
   bottom: 8px;
   left: 8px;
   right: 8px;
-  background: rgba(0, 0, 0, 0.56);
-  backdrop-filter: blur(24px);
+  border: 1px solid #2C0CB9;
+  background: #B1FDE1;
   transition: height 0.3s ease;
-  height: 48px;
-  border-radius: 16px;
+  height: 40px;
+  padding: 6px;
 }
 
 .chat-panel.expanded {
-  height: calc(max(640px, 50vh) - 25px);
-}
-
-.expand-handle {
-  position: absolute;
-  top: -34px;
-  right: 0;
-  width: 64px;
-  height: 24px;
   display: flex;
-  justify-content: center;
+  height: max(54vh, 462px);
+  padding: 6px;
+  flex-direction: column;
   align-items: flex-start;
+  gap: 6px;
+}
+
+.chat-header {
+  width: 100%;
+  height: 28px;
+  display: flex;
+  justify-content: space-between;
+  padding: 4px;
+  align-self: stretch;
+  border: 1px solid #2C0CB9;
+  background: #EBD2EF;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+}
+
+.header-left .n-icon {
   cursor: pointer;
-  background: rgba(88, 255, 208, 0.4);
-  border-top: 1px solid #4AC5A0;
-  border-left: 1px solid #4AC5A0;
-  border-radius: 16px;
-}
-
-.expand-icon {
-  color: #4AC5A0;
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;  /* 填满父元素高度 */
+  width: 40px;   /* 给一个固定宽度 */
 }
 
-.expand-icon :deep(svg) {
-  width: 16px !important;
-  height: 16px !important;
-}
-
-.expand-icon :deep(.n-icon-slot) {
-  width: 16px !important;
-  height: 16px !important;
+.header-left :deep(.n-icon) {
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 0;
+  margin: 0;
 }
 
-.wallet-card,
-.chat-panel,
-.expand-handle {
-  pointer-events: auto;
+.header-left :deep(.n-icon svg) {
+  width: 100%;
+  height: 100%;
 }
 
-.chat-title {
-  position: absolute;
-  left: 24px;
-  top: 0;
-  transform: translateY(-50%);
-  width: 136px;
-  height: 50px;
+.header-title {
+  color: #2C0CB9;
+  font-family: '04b03', monospace;
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  display: flex;
+  align-items: center;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  height: 100%; 
+}
+
+.mode-icon {
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
+  width: 40px;
 }
 
-.chat-title-bg {
-  position: absolute;
-  width: 128px !important;
-  height: 50px !important;
-  top: 0;
-  left: 0;
-}
-
-.chat-title-bg :deep(svg) {
-  width: 128px !important;
-  height: 50px !important;
-}
-
-.chat-title-text {
-  position: relative;
-  font-family: 'PPNeueBit', monospace;
-  font-size: 29px;
-  font-weight: 700;
-  line-height: 20px;
-  top: -3px;
-  left: -8px;
-  color: #FFFFFF;
-  text-align: left;
-  text-decoration-skip-ink: none;
-  text-underline-position: from-font;
-  z-index: 1;
+.mode-icon:hover {
+  opacity: 0.8;
 }
 
 .temp-background {
@@ -358,16 +366,41 @@ watch(() => walletStore.isConnected, (newValue) => {
   background-size: cover;
 }
 
+.chat-state-wrapper {
+  display: flex;
+  padding: 0px 40px;
+  justify-content: center;
+  align-items: center;
+  flex: 1 0 0;
+  align-self: stretch;
+  height: 100%;
+}
+
 .chat-state-container {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 50%;
   display: flex;
   flex-direction: column;
+  width: 100%;
+}
+
+.blue-bar {
+  height: 9px;
+  align-self: stretch;
+  border-top: 2px solid var(--Text-P, #2C0CB9);
+  border-left: 2px solid var(--Text-P, #2C0CB9);
+  border-right: 2px solid var(--Text-P, #2C0CB9);
+  background: #B1FDE1;
+}
+
+.content-area {
+  border: 2px solid var(--Text-P, #2C0CB9);
+  background: #FFF;
+  box-shadow: 4px 4px 0px 0px #F0F;
+  display: flex;
+  padding: 24px 0px;
+  flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
+  align-self: stretch;
 }
 
 .state-message {
@@ -394,15 +427,14 @@ watch(() => walletStore.isConnected, (newValue) => {
 .try-connect-btn {
   width: 160px !important;
   height: 32px;
-  padding: 6px 33px;
-  gap: 10px;
+  padding: 6px 0;
   background: #FA75FF66 !important;
   border: 1px solid #B050B3 !important;
   border-radius: 16px;
   font-family: 'PPNeueBit', monospace;
   font-size: 16px;
   font-weight: 700;
-  line-height: 12px;
+  line-height: 20px;
   text-align: center;
   color: #FA75FF !important;
   display: flex;
@@ -415,15 +447,14 @@ watch(() => walletStore.isConnected, (newValue) => {
   color: #FA75FF !important;
 }
 
-.wallet-icon {
+.loading-icon {
   color: #FFF149;
 }
 
-.loading-icon {
-  width: 32px;
-  height: 32px;
-  color: #FFF149;
-  animation: spin 6s linear infinite;
+.loading-icon :deep(svg) {
+  width: 32px !important;
+  height: 32px !important;
+  animation: spin 2s linear infinite;
 }
 
 @keyframes spin {
@@ -433,5 +464,50 @@ watch(() => walletStore.isConnected, (newValue) => {
   to {
     transform: rotate(360deg);
   }
+}
+
+.chat-panel,
+.wallet-card,
+.chat-header,
+.input-container,
+.messages-container,
+.n-button,
+.chat-content-container {
+  pointer-events: auto;
+}
+
+.header-left :deep(.n-icon),
+.header-right :deep(.n-icon) {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.header-right :deep(.n-icon) {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+}
+
+.header-right :deep(.n-icon svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.chat-content-container {
+  flex: 1;
+  border: 1px solid var(--Text-P, #2C0CB9);
+  background: #C79DDC;
+  width: 100%;
+  height: calc(100% - 40px); /* 40px 是标题栏的高度 */
+  overflow: hidden;
+  position: relative;
 }
 </style> 

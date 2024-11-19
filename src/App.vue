@@ -41,6 +41,6 @@ html, body, #app {
 }
 
 #app {
-  background-color: var(--sl-color-gray-950, #09090b);
+  background-color: transparent;
 }
 </style>
