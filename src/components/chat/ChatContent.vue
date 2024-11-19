@@ -62,7 +62,6 @@
       <n-input
         v-model:value="inputMessage"
         type="textarea"
-        size="large"
         :autosize="{ minRows: 1, maxRows: 3 }"
         :placeholder="inputPlaceholder"
         @keypress.enter.prevent="sendMessage"
@@ -298,6 +297,77 @@ const checkPayment = () => {
     message.warning('No transaction found')
   }
 }
+
+// 在 script setup 部分添加
+const mockMessages = [
+  {
+    id: '1',
+    role: 'assistant',
+    type: 'text',
+    content: 'Hello! How can I help you today?',
+    time: '12:01'
+  },
+  {
+    id: '2',
+    role: 'user',
+    type: 'text',
+    content: 'Can you generate an image for me?',
+    time: '12:02'
+  },
+  {
+    id: '3',
+    role: 'assistant',
+    type: 'text',
+    content: 'Sure! Here\'s your generated image:',
+    time: '12:03'
+  },
+  {
+    id: '4',
+    role: 'assistant',
+    type: 'image',
+    content: 'https://placehold.co/300x300',
+    time: '12:03'
+  },
+  {
+    id: '5',
+    role: 'user',
+    type: 'text',
+    content: 'Thanks! Can you also show me some markdown?\n\n```js\nconsole.log("Hello World!");\n```',
+    time: '12:04'
+  },
+  {
+    id: '6',
+    role: 'assistant',
+    type: 'text',
+    content: '这是一个包含图片的消息 ![示例图片](https://placehold.co/300x300)',
+    time: '12:05'
+  },
+  {
+    id: '7',
+    role: 'assistant',
+    type: 'error',
+    content: 'Sorry, something went wrong. Please try again.',
+    time: '12:06'
+  },
+  {
+    id: '8',
+    role: 'assistant',
+    type: 'text',
+    show_status: 'send_eth',
+    content: 'Please send 0.05 ETH to continue.',
+    time: '12:07'
+  },
+  {
+    id: '9',
+    role: 'assistant',
+    type: 'error',
+    content: 'Please send 0.05 ETH to continue.',
+    time: '12:07'
+  }
+]
+
+// 替换现有的消息数组
+chatStore.messages = mockMessages
 </script>
 
 <style scoped>
@@ -351,23 +421,31 @@ const checkPayment = () => {
 }
 
 .message-bubble {
-  display: inline-block;
+  display: flex;
   padding: 12px;
-  border-radius: 16px;
-  font-size: 14px;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
   word-break: break-word;
+  border-radius: 0;
 }
 
 .message.assistant .message-bubble {
-  background: #FA75FF66;
-  border: 1px solid #B050B3;
-  color: #FA75FF;
+  background: #CFE4F9;
+  border: none;
+  align-self: flex-start;
 }
 
 .message.user .message-bubble {
-  background: #58FFD066;
-  border: 1px solid #4AC5A0;
-  color: #58FFD0;
+  background: #C0F04E;
+  border: none;
+  display: flex;
+  padding: 12px;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  gap: 2px;
+  align-self: flex-end;
 }
 
 .message-bubble.error {
@@ -403,27 +481,27 @@ const checkPayment = () => {
 }
 
 .retry-button {
-  width: 157px !important;
+  background: var(--Text-P, #2C0CB9) !important;
+  color: #FFF !important;
+  font-family: '04b03';
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 12px;
   height: 36px;
   padding: 4px;
-  gap: 2px;
-  background: #FFF14966 !important;
-  border: 1px solid #CCC134 !important;
-  border-radius: 8px;
-  font-family: 'PPNeueBit', monospace;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 12px;
-  text-align: center;
-  color: #FFF149 !important;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  gap: 2px;
+  flex: 1 0 0;
+  border: none !important;
+  width: 322px !important;
 }
 
 .retry-button:hover {
-  background: #FFF14980 !important;
-  color: #FFF149 !important;
+  opacity: 0.9 !important;
+  background: var(--Text-P, #2C0CB9) !important;
 }
 
 .retry-button .n-icon {
@@ -433,13 +511,22 @@ const checkPayment = () => {
 }
 
 .message-text {
-  margin-bottom: 1px;
+  color: var(--Text-P, #2C0CB9);
+  font-family: '04b03';
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 12px; /* 100% */
 }
 
 .message-time {
+  color: var(--Background-W, rgba(0, 0, 0, 0.24));
+  font-family: '04b03';
   font-size: 12px;
-  color: #FFFFFFB8;
-  margin-top: 0px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 12px;
+  align-self: stretch;
 }
 
 .message.assistant .message-time {
@@ -454,6 +541,18 @@ const checkPayment = () => {
   margin: 0;
   white-space: normal;
   color: inherit;
+}
+
+.message-bubble :deep(.markdown-body img) {
+  max-width: 300px;
+  height: auto;
+  margin: 8px 0;
+  display: block; /* 确保图片不会产生额外的间隙 */
+}
+
+.message-bubble :deep(p) {
+  margin: 0; /* 移除段落的默认边距 */
+  padding: 0;
 }
 
 .input-container {
@@ -474,13 +573,13 @@ const checkPayment = () => {
 }
 
 :deep(.n-scrollbar-rail.vertical) {
-  width: 6px !important;
+  width: 8px !important;
 }
 
 :deep(.n-scrollbar-rail__scrollbar) {
-  width: 6px !important;
-  background-color: #FA75FF !important;
-  border-radius: 3px !important;
+  width: 8px !important;
+  background-color: #B1FDE1 !important;
+  border-radius: 0 !important;
 }
 
 .chat-input :deep(.n-input__suffix) {
@@ -498,8 +597,8 @@ const checkPayment = () => {
 .chat-input :deep(textarea:-webkit-autofill),
 .chat-input :deep(textarea:-webkit-autofill:hover), 
 .chat-input :deep(textarea:-webkit-autofill:focus) {
-  -webkit-box-shadow: 0 0 0 1000px transparent inset !important;
-  -webkit-text-fill-color: #58FFD0 !important;
+  -webkit-box-shadow: 0 0 0 1000px #F9D7EF inset !important;
+  -webkit-text-fill-color: #2C0CB9 !important;
   transition: background-color 5000s ease-in-out 0s;  /* 防止过渡动画显示默认背景色 */
 }
 
@@ -563,32 +662,32 @@ const checkPayment = () => {
 }
 
 .eth-button {
-  width: 157px !important;
+  background: var(--Text-P, #2C0CB9) !important;
+  color: #FFF !important;
+  font-family: '04b03';
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 12px; /* 85.714% */
   height: 36px;
   padding: 4px;
-  gap: 2px;
-  background: #FFF14966 !important;
-  border: 1px solid #CCC134 !important;
-  border-radius: 8px;
-  font-family: 'PPNeueBit', monospace;
-  font-size: 16px;
-  font-weight: 700;
-  line-height: 12px;
-  text-align: center;
-  color: #FFF149 !important;
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
+  gap: 2px;
+  flex: 1 0 0;
+  border: none !important;
 }
 
 .eth-button:hover {
-  background: #FFF14980 !important;
-  color: #FFF149 !important;
+  opacity: 0.9 !important;
+  background: var(--Text-P, #2C0CB9) !important;
 }
 
 .eth-button :deep(.n-button__icon) {
   font-size: 12px;
-  margin-left: 4px;
+  margin-left: -2px;
+  margin-top: 4px;
 }
 
 .eth-button .n-icon {
