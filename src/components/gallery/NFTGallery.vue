@@ -13,9 +13,11 @@
       <!-- 标题行 -->
       <div class="title-row">
         <div class="left-section">
-          <div class="icon-button clickable" @click="nftStore.fetchNFTs(galleryStore.currentCollection?.contract)">
-            <RefreshIcon class="icon-default" />
-            <RefreshIconHover class="icon-hover" />
+          <div class="icon-button clickable" @click="handleRefresh">
+            <img src="@/assets/refresh.png" 
+                 class="refresh-icon" 
+                 :class="{ 'rotating': isRefreshing }" 
+                 alt="Refresh" />
           </div>
           <img :src="galleryStore.currentCollection?.imageUrl" class="avatar" alt="Collection Avatar" />
           <span class="title-text">{{ galleryStore.currentCollection?.name }}</span>
@@ -30,39 +32,41 @@
           
         </div>
         <div class="right-section">
-          <n-checkbox class="clickable">Owned</n-checkbox>
+          <div class="owned-filter clickable" @click="toggleOwned">
+            <component :is="isOwned ? selectedIcon : unselectIcon" class="owned-icon" />
+            <span class="owned-text">Owned</span>
+          </div>
         </div>
       </div>
     </div>
 
     <!-- 原有的滚动内容区域 -->
     <n-scrollbar>
-      <div v-if="nftStore.isLoadingNFTs" class="loading-container">
-        <n-spin size="large" />
-      </div>
-      <div v-else class="nft-grid">
-        <div v-for="nft in nftStore.nfts" 
-             :key="nft.id" 
-             class="nft-card clickable"
-             @click="openNftLink(nft.contract, nft.id)">
-          <div class="nft-image-wrapper">
-            <img :src="nft.image" 
-                 class="nft-image" 
-                 @error="handleImageError"
-                 alt="NFT Image">
+      <div class="nft-grid">
+        <TransitionGroup name="nft-refresh" :key="refreshKey">
+          <div v-for="nft in filteredNFTs" 
+               :key="nft.id" 
+               class="nft-card clickable"
+               @click="openNftLink(nft.contract, nft.id)">
+            <div class="nft-image-wrapper">
+              <img :src="nft.image" 
+                   class="nft-image" 
+                   @error="handleImageError"
+                   alt="NFT Image">
+            </div>
+            <div class="nft-info">
+              <p class="nft-name">{{ nft.name }}</p>
+            </div>
           </div>
-          <div class="nft-info">
-            <p class="nft-name">{{ nft.name }}</p>
-          </div>
-        </div>
+        </TransitionGroup>
       </div>
     </n-scrollbar>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { useNFTStore } from '@/stores'
+import { onMounted, ref, computed } from 'vue'
+import { useNFTStore, useWalletStore } from '@/stores'
 import defaultNftImage from '@/assets/misato-avatar.png'
 import ArrowLeftIcon from '@/assets/icons/arrow-left.svg?component'
 import RefreshIcon from '@/assets/icons/refresh-r.svg?component'
@@ -71,17 +75,33 @@ import CopyIcon from '@/assets/icons/copy.svg?component'
 import CopyIconHover from '@/assets/icons/copy.svg?component'
 import MisatoMeIcon from '@/assets/icons/misato_me.svg?component'
 import MisatoMeHover from '@/assets/icons/misato_me.svg?component'
-import MisatoFrensIcon from '@/assets/icons/MISATO_frens.svg?component'
 import { useMessage } from 'naive-ui'
 import { useGalleryStore } from '@/stores'
+import selectedIcon from '@/assets/icons/selected.svg?component'
+import unselectIcon from '@/assets/icons/unselect.svg?component'
 
 const message = useMessage()
 const nftStore = useNFTStore()
+const walletStore = useWalletStore()
 const galleryStore = useGalleryStore()
+const isOwned = ref(false)
+const isRefreshing = ref(false)
+const refreshKey = ref(0)
 
-onMounted(() => {
+// 根据筛选条件显示NFTs
+const filteredNFTs = computed(() => {
+  if (!isOwned.value) return nftStore.nfts
+  return nftStore.nfts.filter(nft => parseInt(nft.id) < 100)
+})
+
+onMounted(async () => {
   if (galleryStore.currentCollection) {
-    nftStore.fetchNFTs(galleryStore.currentCollection.contract)
+    isRefreshing.value = true
+    try {
+      await nftStore.fetchNFTs(galleryStore.currentCollection.contract)
+    } finally {
+      isRefreshing.value = false
+    }
   }
 })
 
@@ -116,6 +136,30 @@ const openMagicEdenCollection = () => {
     window.open(url, '_blank')
   }
 }
+
+const toggleOwned = () => {
+  if (!walletStore.isConnected) {
+    message.warning('Please connect your wallet first')
+    return
+  }
+  
+  isOwned.value = !isOwned.value
+}
+
+const handleRefresh = async () => {
+  if (isRefreshing.value) return
+  
+  isRefreshing.value = true
+  try {
+    await nftStore.fetchNFTs(galleryStore.currentCollection?.contract)
+  } finally {
+    // 即使数据相同，也给用户一个短暂的视觉反馈
+    setTimeout(() => {
+      refreshKey.value++
+      isRefreshing.value = false
+    }, 500)
+  }
+}
 </script>
 
 <style scoped>
@@ -124,6 +168,8 @@ const openMagicEdenCollection = () => {
   display: flex;
   padding: 0 0 0 8px;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 
 .nav-header {
@@ -131,39 +177,41 @@ const openMagicEdenCollection = () => {
 }
 
 .back-row {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .back-button {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  color: #707A8A;
-  font-family: 'PPNeueBit', monospace;
-  font-size: 16px;
+  gap: 4px;
+  color: #8076FF;
+  margin-left: -4px;
   cursor: pointer;
-  width: fit-content;
   padding: 4px 8px;
-  margin-left: -8px;
   transition: all 0.2s ease;
-  border-radius: 4px;
+  width: fit-content;
 }
 
 .back-button:hover {
-  background: rgba(250, 117, 255, 0.1);
+  background: rgba(128, 118, 255, 0.1);
+  box-shadow: 0 2px 4px rgba(128, 118, 255, 0.2);
+  border-radius: 4px;
 }
 
 .back-button svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
 }
 
 .back-text {
-  line-height: 16px;
-  display: inline-block;
-  margin-bottom: 4px;
+  color: #8076FF;
+  font-family: '04b03';
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 32px;
 }
 
 .title-row {
@@ -175,13 +223,42 @@ const openMagicEdenCollection = () => {
 .left-section {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+}
+
+.refresh-icon {
+  width: 24px;
+  height: 24px;
+  transition: transform 0.5s ease;
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .avatar {
   width: 24px;
   height: 24px;
   border-radius: 50%;
+  margin-left: 16px;
+}
+
+.title-text {
+  color: var(--Text-Secondary, #8076FF);
+  font-family: '04b03';
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
 }
 
 .misato-frens-icon {
@@ -206,16 +283,6 @@ const openMagicEdenCollection = () => {
   font-size: 32px !important;
 }
 
-.title-text {
-  color: #FFFFFF;
-  font-size: 18px;
-  font-weight: 400;
-  line-height: 24px;
-  text-align: left;
-  text-underline-position: from-font;
-  text-decoration-skip-ink: none;
-}
-
 .contract-code {
   font-size: 14px;
   color: #666;
@@ -223,7 +290,18 @@ const openMagicEdenCollection = () => {
 
 .right-section :deep(.n-checkbox) {
   --n-label-color: #FA75FF;
+  --n-color-checked: #FF00FF;
   font-family: 'PPNeueBit', monospace;
+}
+
+.right-section :deep(.n-checkbox .n-checkbox__label) {
+  font-family: '04b03';
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 16px;
+  text-align: left;
+  text-underline-position: from-font;
+  text-decoration-skip-ink: none;
 }
 
 .nft-grid {
@@ -241,7 +319,7 @@ const openMagicEdenCollection = () => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  border-radius: 50%;
+  border-radius: 50%;           
   transition: background-color 0.2s;
 }
 
@@ -281,17 +359,23 @@ const openMagicEdenCollection = () => {
 
 .nft-card {
   width: 200px;
-  height: 272px;
-  background: #1B1B1B;
-  border-radius: 16px;
-  border: 2px solid transparent;
+  height: 252px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 3px solid #39EDFF;
+  background: #E8C4EA;
+  box-shadow: 4px 4px 0px 0px #FB59F5;
+  border-radius: 0px;
   cursor: pointer;
   transition: all 0.2s ease;
   overflow: hidden;
 }
 
 .nft-card:hover {
-  border: 2px solid #FA75FF;
+  border: 3px solid #2C0CB9;
+  background: #FFF;
+  box-shadow: 4px 4px 0px 0px #FB59F5;
 }
 
 .nft-image-wrapper {
@@ -307,17 +391,74 @@ const openMagicEdenCollection = () => {
 }
 
 .nft-info {
-  padding: 12px;
+  padding: 16px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .nft-name {
-  color: #fff;
-  font-size: 20px;
+  color: #2C0CB9;
+  font-family: '04b03';
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  width: 100%;
 }
 
-/* 其他样式保持不变... */
+.owned-filter {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.owned-filter:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.owned-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.owned-text {
+  color: var(--Text-Secondary, #8076FF);
+  font-family: '04b03';
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 16px;
+  text-align: left;
+}
+
+/* NFT卡片刷新动画 */
+.nft-refresh-enter-active,
+.nft-refresh-leave-active {
+  transition: all 0.3s ease;
+}
+
+.nft-refresh-enter-from {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+.nft-refresh-leave-to {
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+/* 确保卡片在网格中的位置变化是平滑的 */
+.nft-refresh-move {
+  transition: transform 0.3s ease;
+}
 </style> 
