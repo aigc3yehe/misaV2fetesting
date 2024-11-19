@@ -58,7 +58,6 @@ const handleCollectionClick = (collection: Collection) => {
   display: flex;
   padding: 0 0 0 8px;
   flex-direction: column;
-  background: #131313;
 }
 
 .nav-header {
@@ -107,7 +106,6 @@ const handleCollectionClick = (collection: Collection) => {
   justify-content: space-between;
   margin: 0 24px;
   padding: 8px 0;
-  background: #131313;
 }
 
 .collection-card {

@@ -124,7 +124,6 @@ const openMagicEdenCollection = () => {
   display: flex;
   padding: 0 0 0 8px;
   flex-direction: column;
-  background: #131313;
 }
 
 .nav-header {
@@ -233,7 +232,6 @@ const openMagicEdenCollection = () => {
   gap: 16px;
   justify-content: space-between;
   margin-left: 24px;
-  background: #131313;
 }
 
 .icon-button {

@@ -72,10 +72,10 @@
             </n-message-provider>
           </template>
           <template #2>
-            <n-message-provider>
+            <!-- <n-message-provider>
               <FeaturedCollection v-if="galleryStore.currentView === 'featured'" />
               <NFTGallery v-else />
-            </n-message-provider>
+            </n-message-provider> -->
           </template>
         </n-split>
       </n-config-provider>
@@ -98,14 +98,14 @@ import TelegramIconHover from '@/assets/icons/tg-hover.svg?component'
 import DocsIcon from '@/assets/icons/docs.svg?component'
 import DocsIconHover from '@/assets/icons/docs-hover.svg?component'
 import LogoIcon from '@/assets/icons/logo.svg?component'
-import MisatoStudioIcon from '@/assets/icons/misato_studio.svg?component'
-import WalletIcon from '@/assets/icons/metamask.svg?component'
 import SmallBaseIcon from '@/assets/icons/small_base.svg?component'
 import { useWallet } from '@/composables/useWallet'
 import { useDialog } from 'naive-ui'
 import { useWalletStore } from '@/stores/wallet'
 import { useGalleryStore } from '@/stores'
 import FeaturedCollection from '@/components/gallery/FeaturedCollection.vue'
+import BgLine from '@/assets/icons/bg_line.svg?component'
+import BgPattern from '@/assets/icons/bg.svg?component'
 
 const theme = ref(darkTheme)
 const { isConnected, address, handleConnect, handleDisconnect, formatAddress } = useWallet()
@@ -207,7 +207,36 @@ const handleWalletClick = async () => {
 }
 
 :deep(.n-split-pane-2) {
-  background: var(--sl-color-gray-900);
+  position: relative;
+  overflow: hidden;
+}
+
+:deep(.n-split-pane-2)::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('@/assets/icons/bg.svg');
+  background-repeat: repeat;
+  background-position: top center;
+  background-size: contain;
+  opacity: 1;
+}
+
+:deep(.n-split-pane-2)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('@/assets/bg_line.png');
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-size: 100% 100%;
+  opacity: 1;
 }
 
 .header-left {
