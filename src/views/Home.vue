@@ -72,10 +72,10 @@
             </n-message-provider>
           </template>
           <template #2>
-            <!-- <n-message-provider>
+            <n-message-provider>
               <FeaturedCollection v-if="galleryStore.currentView === 'featured'" />
               <NFTGallery v-else />
-            </n-message-provider> -->
+            </n-message-provider>
           </template>
         </n-split>
       </n-config-provider>
@@ -223,6 +223,7 @@ const handleWalletClick = async () => {
   background-position: top center;
   background-size: contain;
   opacity: 1;
+  z-index: 0;
 }
 
 :deep(.n-split-pane-2)::after {
@@ -237,6 +238,7 @@ const handleWalletClick = async () => {
   background-position: top center;
   background-size: 100% 100%;
   opacity: 1;
+  z-index: 0;
 }
 
 .header-left {
