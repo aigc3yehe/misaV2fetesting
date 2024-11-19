@@ -5,9 +5,6 @@
         <n-icon size="32" class="logo-icon">
           <LogoIcon />
         </n-icon>
-        <n-icon class="misato-studio-icon">
-          <MisatoStudioIcon />
-        </n-icon>
         <h1 class="title">MISATO Studio</h1>
       </div>
       <div class="header-right">
@@ -46,29 +43,23 @@
           </n-button>
         </div>
         
-        <n-button 
-          quaternary 
-          class="wallet-button" 
+        <div 
+          class="wallet-button clickable" 
           :class="{ 'connected': isConnected }"
           @click="handleWalletClick"
         >
-          <template #icon>
-            <n-icon class="wallet-icon">
-              <div class="wallet-icon-wrapper">
-                <template v-if="isConnected && walletStore.walletInfo">
-                  <img 
-                    :src="walletStore.walletInfo.icon" 
-                    :alt="walletStore.walletInfo.name"
-                    class="main-wallet-icon"
-                  />
-                  <SmallBaseIcon class="status-icon" />
-                </template>
-                <WalletIcon v-else />
-              </div>
-            </n-icon>
-          </template>
-          {{ isConnected ? formatAddress(address || '') : 'Connect Wallet' }}
-        </n-button>
+          <div class="wallet-icon-wrapper" v-if="isConnected">
+            <template v-if="walletStore.walletInfo">
+              <img 
+                :src="walletStore.walletInfo.icon" 
+                :alt="walletStore.walletInfo.name"
+                class="main-wallet-icon"
+              />
+              <SmallBaseIcon class="status-icon" />
+            </template>
+          </div>
+          <span>{{ isConnected ? formatAddress(address || '') : 'Connect' }}</span>
+        </div>
       </div>
     </header>
 
@@ -164,9 +155,27 @@ const handleWalletClick = async () => {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  background: var(--sl-color-gray-900);
-  border-bottom: 1px solid var(--sl-color-gray-800);
+  padding: 0 16px;
+  background: var(--background-primary);
+  position: relative;
+}
+
+.header::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(
+    to right,
+    #39EDFF 0%,
+    #39EDFF 33.33%,
+    #A940FF 33.33%,
+    #A940FF 66.66%,
+    var(--brand-primary) 66.66%,
+    var(--brand-primary) 100%
+  );
 }
 
 .main-content {
@@ -253,15 +262,18 @@ const handleWalletClick = async () => {
 }
 
 .title {
-  display: none;
-  font-family: 'PPNeueBit', monospace;
-  font-size: 28px;
+  font-family: '04b03', monospace;
+  font-size: 22px;
   font-weight: 400;
-  line-height: 40px;
+  line-height: 22px;
   text-align: left;
   text-underline-position: from-font;
   text-decoration-skip-ink: none;
-  color: var(--brand-primary);
+  background: #FF00FF;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  display: block;
 }
 
 .header-right {
@@ -272,27 +284,34 @@ const handleWalletClick = async () => {
 
 .icon-group {
   display: flex;
+  align-items: center;
   gap: 20px;
 }
 
 .wallet-button {
+  height: 32px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  border-radius: 20px;
-  padding: 6px 12px;
-  background: rgba(255, 255, 255, 0.07);
-  color: #707A8A;
+  gap: 4px;
+  padding: 2px 12px;
+  background: var(--Brand-Primary, #F0F);
 }
 
 .wallet-button.connected {
-  background: var(--brand-secondary);
-  color: #707A8A;
+  background: #FFFFFF;
 }
 
-.wallet-button:hover {
-  background: var(--brand-primary);
-  color: #707A8A;
+.wallet-button span {
+  color: #FFFFFF;
+  font-family: '04b03';
+  font-size: 16px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 24px;
+}
+
+.wallet-button.connected span {
+  color: var(--brand-primary, #F0F);
 }
 
 :deep(.n-button) {
@@ -361,10 +380,6 @@ const handleWalletClick = async () => {
   --n-border-pressed: none !important;
 }
 
-.wallet-button {
-  background: rgba(255, 255, 255, 0.07) !important;
-}
-
 .wallet-icon-wrapper {
   position: relative;
   width: 28px;
@@ -375,9 +390,8 @@ const handleWalletClick = async () => {
 }
 
 .main-wallet-icon {
-  width: 24px;
-  height: 24px;
-  margin: 2px;
+  width: 28px;
+  height: 28px;
 }
 
 .status-icon {
@@ -389,9 +403,22 @@ const handleWalletClick = async () => {
   z-index: 1;
 }
 
-/* 确保 WalletIcon 也有正确的尺寸 */
 :deep(svg) {
   width: 28px;
   height: 28px;
+}
+
+.icon-wrapper {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.icon-wrapper img,
+.icon-wrapper :deep(svg) {
+  width: 20px;
+  height: 20px;
 }
 </style>
