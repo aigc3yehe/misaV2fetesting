@@ -90,6 +90,63 @@ export const useNFTStore = defineStore('nft', () => {
     }
   }
 
+  // 新增 action
+  const fetchOwnedNFTs = async (ownerAddress: string, contractAddress: string) => {
+    if (!ownerAddress || !contractAddress) return
+    isLoadingNFTs.value = true
+    nftError.value = ''
+    
+    try {
+      const queryParams = new URLSearchParams({
+        owner: ownerAddress,
+        'contractAddresses': contractAddress
+      })
+
+      const response = await fetch(
+        `${API_CONFIG.baseUrl}/${API_CONFIG.apiKey}/getNFTsForOwner?${queryParams}`
+      )
+      
+      interface OwnedNFTResponse {
+        ownedNfts: Array<{
+          tokenId: string
+          name?: string
+          raw?: {
+            metadata?: {
+              name?: string
+              image?: string
+              description?: string
+            }
+          }
+          image?: {
+            originalUrl?: string
+            cachedUrl?: string
+          }
+          description?: string
+          contract: {
+            address: string
+          }
+        }>
+      }
+      
+      const data: OwnedNFTResponse = await response.json()
+      
+      const ownedNfts = data.ownedNfts.map(nft => ({
+        id: nft.tokenId,
+        name: nft.name || nft.raw?.metadata?.name || `MISATO Frens #${nft.tokenId}`,
+        image: nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.cachedUrl || '',
+        description: nft.description || nft.raw?.metadata?.description,
+        contract: nft.contract.address
+      }))
+
+      nfts.value = ownedNfts.sort((a, b) => Number(b.id) - Number(a.id))
+    } catch (error) {
+      console.error('Error fetching owned NFTs:', error)
+      nftError.value = 'Failed to load owned NFTs'
+    } finally {
+      isLoadingNFTs.value = false
+    }
+  }
+
   return {
     // 状态
     nfts,
@@ -100,6 +157,7 @@ export const useNFTStore = defineStore('nft', () => {
     CONTRACT_ADDRESS,
     
     // Actions
-    fetchNFTs
+    fetchNFTs,
+    fetchOwnedNFTs
   }
 }) 

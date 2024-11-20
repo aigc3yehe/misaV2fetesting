@@ -88,10 +88,13 @@ const isOwned = ref(false)
 const isRefreshing = ref(false)
 const refreshKey = ref(0)
 
-// 根据筛选条件显示NFTs
+// 添加测试地址常量
+const TEST_WALLET_ADDRESS = '0x006383a4fc4de3761c1603ab6281501e5e82618f'
+
+// 移除旧的 filteredNFTs 计算属性
 const filteredNFTs = computed(() => {
-  if (!isOwned.value) return nftStore.nfts
-  return nftStore.nfts.filter(nft => parseInt(nft.id) < 100)
+  // 直接返回 store 中的 NFTs，不需要额外过滤
+  return nftStore.nfts
 })
 
 onMounted(async () => {
@@ -137,13 +140,34 @@ const openMagicEdenCollection = () => {
   }
 }
 
-const toggleOwned = () => {
+const toggleOwned = async () => {
   if (!walletStore.isConnected) {
     message.warning('Please connect your wallet first')
     return
   }
   
-  isOwned.value = !isOwned.value
+  isRefreshing.value = true
+  try {
+    isOwned.value = !isOwned.value
+    
+    if (isOwned.value && galleryStore.currentCollection) {
+      const ownerAddress = import.meta.env.DEV 
+        ? TEST_WALLET_ADDRESS 
+        : walletStore.userWalletAddress
+        
+      await nftStore.fetchOwnedNFTs(
+        ownerAddress,
+        galleryStore.currentCollection.contract
+      )
+    } else if (galleryStore.currentCollection) {
+      await nftStore.fetchNFTs(galleryStore.currentCollection.contract)
+    }
+    
+    // 强制更新视图
+    refreshKey.value++
+  } finally {
+    isRefreshing.value = false
+  }
 }
 
 const handleRefresh = async () => {
@@ -157,7 +181,7 @@ const handleRefresh = async () => {
     setTimeout(() => {
       refreshKey.value++
       isRefreshing.value = false
-    }, 500)
+    }, 100)
   }
 }
 </script>
