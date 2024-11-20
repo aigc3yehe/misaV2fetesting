@@ -59,7 +59,9 @@
           </template>
           <template #2>
             <n-message-provider>
-              <FeaturedCollection v-if="galleryStore.currentView === 'featured'" />
+              <keep-alive v-if="galleryStore.currentView === 'featured'">
+                <FeaturedCollection />
+              </keep-alive>
               <NFTGallery v-else />
             </n-message-provider>
           </template>

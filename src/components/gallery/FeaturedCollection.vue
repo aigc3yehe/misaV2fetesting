@@ -4,15 +4,17 @@
       <div class="title-row">
         <div class="left-section">
           <span class="title-text">Featured Collection</span>
+          <div v-show="isRefreshing" class="icon-button">
+            <img src="@/assets/refresh.png" 
+                 class="refresh-icon rotating" 
+                 alt="Refresh" />
+          </div>
         </div>
       </div>
     </div>
     
     <n-scrollbar>
-      <div v-if="collectionStore.isLoadingCollections" class="loading-container">
-        <n-spin size="large" />
-      </div>
-      <div v-else class="collection-grid">
+      <div class="collection-grid">
         <div v-for="collection in collectionStore.collections"
              :key="collection.id"
              class="collection-card clickable" 
@@ -37,16 +39,38 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { onMounted, onActivated, ref } from 'vue'
 import { useGalleryStore, useCollectionStore } from '@/stores'
 import BaseIcon from '@/assets/icons/base.svg?component'
 import type { Collection } from '@/stores/collection'
 
 const galleryStore = useGalleryStore()
 const collectionStore = useCollectionStore()
+const isFirstActivation = ref(true)
+const isRefreshing = ref(false)
+
+const handleRefresh = async () => {
+  if (isRefreshing.value) return
+  
+  isRefreshing.value = true
+  try {
+    await collectionStore.fetchCollections()
+  } finally {
+    setTimeout(() => {
+      isRefreshing.value = false
+    }, 100)
+  }
+}
 
 onMounted(() => {
   collectionStore.fetchCollections()
+})
+
+onActivated(() => {
+  if (!isFirstActivation.value) {
+    handleRefresh()
+  }
+  isFirstActivation.value = false
 })
 
 const handleCollectionClick = (collection: Collection) => {
@@ -210,5 +234,32 @@ const handleCollectionClick = (collection: Collection) => {
 
 .clickable {
   cursor: pointer;
+}
+
+.refresh-icon {
+  width: 24px;
+  height: 24px;
+  transition: transform 0.5s ease;
+  display: block;
+}
+
+.rotating {
+  animation: rotate 1s linear infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.icon-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
 }
 </style> 
