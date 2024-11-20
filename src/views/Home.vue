@@ -199,7 +199,7 @@ const handleWalletClick = async () => {
 :deep(.n-split-pane-2) {
   position: relative;
   overflow: hidden;
-  background: var(--sl-color-gray-950, #09090b);
+  background: #FBF7F1;
 }
 
 :deep(.n-split-pane-2)::before,
