@@ -68,6 +68,10 @@ export function useWallet() {
       dialog.create({
         title: 'Select Wallet',
         positiveText: 'Cancel',
+        positiveButtonProps: {
+          color: '#FB59F5',
+          textColor: '#FFFFFF'
+        },
         style: {
           width: '400px'
         },

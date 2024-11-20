@@ -135,6 +135,14 @@ const handleWalletClick = async () => {
         content: () => h('div', null, 'Are you sure you want to disconnect your wallet?'),
         positiveText: 'Confirm',
         negativeText: 'Cancel',
+        positiveButtonProps: {
+          color: '#FB59F5',
+          textColor: '#FFFFFF'
+        },
+        // 添加图标样式
+        style: {
+          '--n-icon-color': '#FB59F5'
+        },
         onPositiveClick: async () => {
           await handleDisconnect()
         }

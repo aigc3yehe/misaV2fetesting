@@ -103,13 +103,13 @@ export const useNFTStore = defineStore('nft', () => {
       do {
         const queryParams = new URLSearchParams({
           owner: ownerAddress,
-          'contractAddresses': contractAddress,
-          limit: '100',
+          withMetadata: 'true',
+          pageSize: '100',
           ...(pageKey && { pageKey })
         })
 
         const response = await fetch(
-          `${API_CONFIG.baseUrl}/${API_CONFIG.apiKey}/getNFTsForOwner?${queryParams}`
+          `${API_CONFIG.baseUrl}/${API_CONFIG.apiKey}/getNFTsForOwner?contractAddresses[]=${contractAddress}&${queryParams}`
         )
         
         interface OwnedNFTResponse {
