@@ -16,7 +16,7 @@
 
 @font-face {
   font-family: '04b03';
-  src: url('@/assets/fonts/04b03.ttf') format('truetype');
+  src: url('@/assets/fonts/04b03.TTF') format('truetype');
   font-weight: normal;
   font-style: normal;
   font-display: swap;
