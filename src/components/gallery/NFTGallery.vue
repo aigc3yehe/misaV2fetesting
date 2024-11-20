@@ -21,13 +21,11 @@
           </div>
           <img :src="galleryStore.currentCollection?.imageUrl" class="avatar" alt="Collection Avatar" />
           <span class="title-text">{{ galleryStore.currentCollection?.name }}</span>
-          <div class="icon-button clickable" @click="copyAddress">
+          <div class="icon-button clickable copy-button" @click="copyAddress">
             <CopyIcon class="icon-default" />
-            <CopyIconHover class="icon-hover" />
           </div>
-          <div class="icon-button clickable" @click="openMagicEdenCollection">
+          <div class="icon-button clickable me-button" @click="openMagicEdenCollection">
             <MisatoMeIcon class="icon-default" />
-            <MisatoMeHover class="icon-hover" />
           </div>
           
         </div>
@@ -40,45 +38,65 @@
       </div>
     </div>
 
-    <!-- 原有的滚动内容区域 -->
-    <n-scrollbar>
-      <div class="nft-grid">
-        <TransitionGroup name="nft-refresh" :key="refreshKey">
-          <div v-for="nft in filteredNFTs" 
-               :key="nft.id" 
-               class="nft-card clickable"
-               @click="openNftLink(nft.contract, nft.id)">
-            <div class="nft-image-wrapper">
-              <img :src="nft.image" 
-                   class="nft-image" 
-                   @error="handleImageError"
-                   alt="NFT Image">
-            </div>
-            <div class="nft-info">
-              <p class="nft-name">{{ nft.name }}</p>
-            </div>
+    <!-- 添加一个包装div作为容器 -->
+    <div ref="containerRef" class="list-container">
+      <n-virtual-list
+        class="virtual-list"
+        :items="gridRows"
+        :item-size="268"
+        key-field="id"
+        :scrollbar-props="{
+          trigger: 'hover',
+          size: 6
+        }"
+      >
+        <template #default="{ item: row }">
+          <div class="nft-grid-row" :style="{ gap: `${gapWidth}px` }">
+            <template v-for="nft in row.items" :key="nft.isFiller ? nft.id : `${nft.contract}-${nft.id}`">
+              <!-- 真实NFT卡片 -->
+              <div 
+                v-if="!nft.isFiller"
+                class="nft-card clickable"
+                @click="openNftLink(nft.contract, nft.id)"
+              >
+                <div class="nft-image-wrapper">
+                  <LazyImage
+                    :key="`img-${nft.contract}-${nft.id}`"
+                    :src="nft.image"
+                    :alt="nft.name"
+                    class="nft-image"
+                    @error="handleImageError"
+                  />
+                </div>
+                <div class="nft-info">
+                  <p class="nft-name">{{ nft.name }}</p>
+                </div>
+              </div>
+              <!-- 空白填充卡片 -->
+              <div 
+                v-else
+                class="nft-card filler"
+              ></div>
+            </template>
           </div>
-        </TransitionGroup>
-      </div>
-    </n-scrollbar>
+        </template>
+      </n-virtual-list>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, onUnmounted, ref, computed, defineComponent, h, watchEffect } from 'vue'
 import { useNFTStore, useWalletStore } from '@/stores'
 import defaultNftImage from '@/assets/misato-avatar.png'
 import ArrowLeftIcon from '@/assets/icons/arrow-left.svg?component'
-import RefreshIcon from '@/assets/icons/refresh-r.svg?component'
-import RefreshIconHover from '@/assets/icons/refresh-r.svg?component'
 import CopyIcon from '@/assets/icons/copy.svg?component'
-import CopyIconHover from '@/assets/icons/copy.svg?component'
 import MisatoMeIcon from '@/assets/icons/misato_me.svg?component'
-import MisatoMeHover from '@/assets/icons/misato_me.svg?component'
 import { useMessage } from 'naive-ui'
 import { useGalleryStore } from '@/stores'
 import selectedIcon from '@/assets/icons/selected.svg?component'
 import unselectIcon from '@/assets/icons/unselect.svg?component'
+import { NVirtualList } from 'naive-ui'
 
 const message = useMessage()
 const nftStore = useNFTStore()
@@ -87,14 +105,67 @@ const galleryStore = useGalleryStore()
 const isOwned = ref(false)
 const isRefreshing = ref(false)
 const refreshKey = ref(0)
-
-// 添加测试地址常量
-const TEST_WALLET_ADDRESS = '0x006383a4fc4de3761c1603ab6281501e5e82618f'
+const containerRef = ref<HTMLElement | null>(null)
+const itemsPerRow = ref(5)
+const gapWidth = ref(16)
 
 // 移除旧的 filteredNFTs 计算属性
 const filteredNFTs = computed(() => {
   // 直接返回 store 中的 NFTs，不需要额外过滤
   return nftStore.nfts
+})
+
+// 计算每行可显示的卡片数量和间距
+const calculateLayout = () => {
+  if (!containerRef.value) return
+  
+  const containerWidth = containerRef.value.clientWidth - 48 // 减去左右padding (24px * 2)
+  const cardWidth = 200 // 卡片固定宽度
+  const minGap = 16 // 最小间距
+  
+  // 计算能放下的卡片数量
+  const count = Math.floor((containerWidth + minGap) / (cardWidth + minGap))
+  itemsPerRow.value = Math.max(1, count)
+  
+  // 计算实际间距
+  const totalGapWidth = containerWidth - (cardWidth * itemsPerRow.value)
+  const gaps = itemsPerRow.value - 1 // 间隙数量
+  if (gaps > 0) {
+    gapWidth.value = Math.floor(totalGapWidth / gaps)
+  }
+}
+
+// 监听容器大小变化
+onMounted(() => {
+  const resizeObserver = new ResizeObserver(calculateLayout)
+  if (containerRef.value) {
+    resizeObserver.observe(containerRef.value)
+  }
+  
+  // 初始计算
+  calculateLayout()
+
+  onUnmounted(() => {
+    resizeObserver.disconnect()
+  })
+})
+
+// 将NFTs数组转换为网格行数组
+const gridRows = computed(() => {
+  const rows = []
+  for (let i = 0; i < filteredNFTs.value.length; i += itemsPerRow.value) {
+    const rowItems = filteredNFTs.value.slice(i, i + itemsPerRow.value)
+    // 添加空白卡片填充最后一行
+    const fillers = Array(itemsPerRow.value - rowItems.length).fill(null).map((_, index) => ({
+      id: `filler-${i}-${index}`,
+      isFiller: true
+    }))
+    rows.push({
+      id: `row-${i}`,
+      items: [...rowItems, ...fillers]
+    })
+  }
+  return rows
 })
 
 onMounted(async () => {
@@ -151,12 +222,8 @@ const toggleOwned = async () => {
     isOwned.value = !isOwned.value
     
     if (isOwned.value && galleryStore.currentCollection) {
-      const ownerAddress = import.meta.env.DEV 
-        ? TEST_WALLET_ADDRESS 
-        : walletStore.userWalletAddress
-        
       await nftStore.fetchOwnedNFTs(
-        ownerAddress,
+        walletStore.userWalletAddress,
         galleryStore.currentCollection.contract
       )
     } else if (galleryStore.currentCollection) {
@@ -184,6 +251,59 @@ const handleRefresh = async () => {
     }, 100)
   }
 }
+
+// LazyImage 组件优化
+const LazyImage = defineComponent({
+  name: 'LazyImage',
+  props: {
+    src: String,
+    alt: String
+  },
+  setup(props) {
+    const imgRef = ref<HTMLImageElement | null>(null)
+    const isLoaded = ref(false)
+    const observer = ref<IntersectionObserver | null>(null)
+    const currentSrc = ref('')
+
+    // 使用 watchEffect 来处理 src 变化
+    watchEffect(() => {
+      if (props.src && isLoaded.value) {
+        currentSrc.value = props.src
+      }
+    })
+
+    onMounted(() => {
+      observer.value = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting && !isLoaded.value && imgRef.value && props.src) {
+            currentSrc.value = props.src
+            isLoaded.value = true
+            observer.value?.unobserve(entry.target)
+          }
+        })
+      }, {
+        rootMargin: '100% 0px',
+        threshold: 0
+      })
+
+      if (imgRef.value) {
+        observer.value.observe(imgRef.value)
+      }
+    })
+
+    onUnmounted(() => {
+      observer.value?.disconnect()
+    })
+
+    return () => h('img', {
+      ref: imgRef,
+      src: currentSrc.value,
+      class: ['nft-image', { 'loaded': isLoaded.value }],
+      alt: props.alt,
+      loading: 'lazy'
+    })
+  }
+})
 </script>
 
 <style scoped>
@@ -199,10 +319,12 @@ const handleRefresh = async () => {
 
 .nav-header {
   padding: 16px 24px;
+  pointer-events: auto;
 }
 
 .back-row {
   margin-bottom: 12px;
+  margin-left: -8px;
 }
 
 .back-button {
@@ -255,6 +377,7 @@ const handleRefresh = async () => {
   width: 24px;
   height: 24px;
   transition: transform 0.5s ease;
+  display: block;
 }
 
 .rotating {
@@ -275,6 +398,7 @@ const handleRefresh = async () => {
   height: 24px;
   border-radius: 50%;
   margin-left: 16px;
+  display: block;
 }
 
 .title-text {
@@ -286,155 +410,20 @@ const handleRefresh = async () => {
   line-height: 24px;
 }
 
-.misato-frens-icon {
-  color: var(--brand-secondary);
-  display: flex;
-  align-items: center;
-  width: 214px !important;
-  height: 16px !important;
-}
-
-.misato-frens-icon :deep(svg) {
-  width: 214px;
-  height: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.misato-frens-icon:deep(.n-icon) {
-  width: 214px !important;
-  height: 16px !important;
-  font-size: 32px !important;
-}
-
-.contract-code {
-  font-size: 14px;
-  color: #666;
-}
-
-.right-section :deep(.n-checkbox) {
-  --n-label-color: #FA75FF;
-  --n-color-checked: #FF00FF;
-  font-family: 'PPNeueBit', monospace;
-}
-
-.right-section :deep(.n-checkbox .n-checkbox__label) {
-  font-family: '04b03';
-  font-size: 14px;
-  font-weight: 400;
-  line-height: 16px;
-  text-align: left;
-  text-underline-position: from-font;
-  text-decoration-skip-ink: none;
-}
-
-.nft-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, 200px);
-  gap: 16px;
-  justify-content: space-between;
-  margin-left: 24px;
-}
-
 .icon-button {
-  width: 32px;
-  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  border-radius: 50%;           
-  transition: background-color 0.2s;
-}
-
-.icon-button:hover {
-  background: rgba(255, 255, 255, 0.07);
-}
-
-.icon-button svg {
-  width: 24px;
   height: 24px;
+  pointer-events: auto;
+  cursor: pointer;
 }
 
 .icon-default {
+  width: 24px;
+  height: 24px;
+  color: #8076FF;
   display: block;
-}
-
-.icon-hover {
-  display: none;
-}
-
-.icon-button:hover .icon-default {
-  display: none;
-}
-
-.icon-button:hover .icon-hover {
-  display: block;
-}
-
-:deep(.n-button) {
-  --n-color: transparent !important;
-  --n-color-hover: transparent !important;
-  --n-color-pressed: transparent !important;
-  --n-border: none !important;
-  --n-border-hover: none !important;
-  --n-border-pressed: none !important;
-}
-
-.nft-card {
-  width: 200px;
-  height: 252px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  border: 3px solid #39EDFF;
-  background: #E8C4EA;
-  box-shadow: 4px 4px 0px 0px #FB59F5;
-  border-radius: 0px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  overflow: hidden;
-}
-
-.nft-card:hover {
-  border: 3px solid #2C0CB9;
-  background: #FFF;
-  box-shadow: 4px 4px 0px 0px #FB59F5;
-}
-
-.nft-image-wrapper {
-  width: 200px;
-  height: 200px;
-  overflow: hidden;
-}
-
-.nft-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.nft-info {
-  padding: 16px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.nft-name {
-  color: #2C0CB9;
-  font-family: '04b03';
-  font-size: 15px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 20px;
-  margin: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 100%;
 }
 
 .owned-filter {
@@ -445,6 +434,7 @@ const handleRefresh = async () => {
   padding: 4px;
   border-radius: 4px;
   transition: all 0.2s ease;
+  pointer-events: auto;
 }
 
 .owned-filter:hover {
@@ -466,34 +456,140 @@ const handleRefresh = async () => {
   text-align: left;
 }
 
-/* NFT卡片刷新动画 */
-.nft-refresh-enter-active,
-.nft-refresh-leave-active {
-  transition: all 0.3s ease;
+/* 虚拟列表样式 */
+.list-container {
+  flex: 1;
+  height: calc(100vh - 140px);
+  width: 100%;
 }
 
-.nft-refresh-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.nft-refresh-leave-to {
-  opacity: 0;
-  transform: translateY(-10px);
-}
-
-/* 确保卡片在网格中的位置变化是平滑的 */
-.nft-refresh-move {
-  transition: transform 0.3s ease;
-}
-
-/* 添加这些选择器来恢复特定元素的点击事件 */
-.nav-header,
-.nft-grid,
-.back-button,
-.icon-button,
-.owned-filter,
-.nft-card {
+.virtual-list {
+  height: 100%;
   pointer-events: auto;
+}
+
+/* 自定义滚动条样式 */
+:deep(.n-scrollbar-rail) {
+  background-color: transparent !important;
+}
+
+:deep(.n-scrollbar-rail.vertical) {
+  width: 6px !important;
+}
+
+:deep(.n-scrollbar-rail__scrollbar) {
+  width: 6px !important;
+  background-color: rgba(128, 118, 255, 0.6) !important;
+  border-radius: 3px !important;
+}
+
+:deep(.n-scrollbar-rail__scrollbar:hover) {
+  background-color: rgba(128, 118, 255, 0.8) !important;
+}
+
+:deep(.n-scrollbar-rail__track) {
+  background-color: rgba(128, 118, 255, 0.1) !important;
+}
+
+.nft-grid-row {
+  display: flex;
+  padding: 16px 24px 0;
+  justify-content: flex-start; /* 改为靠左对齐 */
+}
+
+.nft-grid-row:last-child {
+  padding-bottom: 16px;
+}
+
+.nft-card {
+  width: 200px;
+  height: 252px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  border: 3px solid #39EDFF;
+  background: #E8C4EA;
+  box-shadow: 4px 4px 0px 0px #FB59F5;
+  border-radius: 0px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  overflow: hidden;
+}
+
+.nft-card:hover {
+  border: 3px solid var(--Text-P, #2C0CB9);
+  background: #FFF;
+}
+
+.nft-card:hover .nft-info {
+  background: #FFF;
+}
+
+.nft-image-wrapper {
+  width: 200px;
+  height: 200px;
+  overflow: hidden;
+}
+
+.nft-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  will-change: opacity;
+}
+
+.nft-image.loaded {
+  opacity: 1;
+}
+
+.nft-info {
+  padding: 16px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  background: #E8C4EA;
+  transition: background 0.2s ease;
+}
+
+.nft-name {
+  color: #2C0CB9;
+  font-family: '04b03';
+  font-size: 15px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+  text-align: center;
+}
+
+/* 确保所有可点击元素都有pointer-events */
+.clickable {
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.copy-button {
+  margin-left: 12px;
+}
+
+.me-button {
+  margin-left: 12px;
+}
+
+/* 添加填充卡片样式 */
+.nft-card.filler {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  pointer-events: none;
+  visibility: hidden; /* 使用 visibility: hidden 而不是 display: none 以保持布局 */
 }
 </style> 

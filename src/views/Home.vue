@@ -113,8 +113,6 @@ import { useDialog } from 'naive-ui'
 import { useWalletStore } from '@/stores/wallet'
 import { useGalleryStore } from '@/stores'
 import FeaturedCollection from '@/components/gallery/FeaturedCollection.vue'
-import BgLine from '@/assets/icons/bg_line.svg?component'
-import BgPattern from '@/assets/icons/bg.svg?component'
 
 const theme = ref(darkTheme)
 const { isConnected, address, handleConnect, handleDisconnect, formatAddress } = useWallet()

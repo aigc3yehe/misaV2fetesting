@@ -97,48 +97,59 @@ export const useNFTStore = defineStore('nft', () => {
     nftError.value = ''
     
     try {
-      const queryParams = new URLSearchParams({
-        owner: ownerAddress,
-        'contractAddresses': contractAddress
-      })
+      let pageKey: string | null = null
+      let allOwnedNfts: NFT[] = []
 
-      const response = await fetch(
-        `${API_CONFIG.baseUrl}/${API_CONFIG.apiKey}/getNFTsForOwner?${queryParams}`
-      )
-      
-      interface OwnedNFTResponse {
-        ownedNfts: Array<{
-          tokenId: string
-          name?: string
-          raw?: {
-            metadata?: {
-              name?: string
-              image?: string
-              description?: string
+      do {
+        const queryParams = new URLSearchParams({
+          owner: ownerAddress,
+          'contractAddresses': contractAddress,
+          limit: '100',
+          ...(pageKey && { pageKey })
+        })
+
+        const response = await fetch(
+          `${API_CONFIG.baseUrl}/${API_CONFIG.apiKey}/getNFTsForOwner?${queryParams}`
+        )
+        
+        interface OwnedNFTResponse {
+          ownedNfts: Array<{
+            tokenId: string
+            name?: string
+            raw?: {
+              metadata?: {
+                name?: string
+                image?: string
+                description?: string
+              }
             }
-          }
-          image?: {
-            originalUrl?: string
-            cachedUrl?: string
-          }
-          description?: string
-          contract: {
-            address: string
-          }
-        }>
-      }
-      
-      const data: OwnedNFTResponse = await response.json()
-      
-      const ownedNfts = data.ownedNfts.map(nft => ({
-        id: nft.tokenId,
-        name: nft.name || nft.raw?.metadata?.name || `MISATO Frens #${nft.tokenId}`,
-        image: nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.cachedUrl || '',
-        description: nft.description || nft.raw?.metadata?.description,
-        contract: nft.contract.address
-      }))
+            image?: {
+              originalUrl?: string
+              cachedUrl?: string
+            }
+            description?: string
+            contract: {
+              address: string
+            }
+          }>
+          pageKey?: string
+        }
+        
+        const data: OwnedNFTResponse = await response.json()
+        
+        const newOwnedNfts = data.ownedNfts.map(nft => ({
+          id: nft.tokenId,
+          name: nft.name || nft.raw?.metadata?.name || `MISATO Frens #${nft.tokenId}`,
+          image: nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.cachedUrl || '',
+          description: nft.description || nft.raw?.metadata?.description,
+          contract: nft.contract.address
+        }))
 
-      nfts.value = ownedNfts.sort((a, b) => Number(b.id) - Number(a.id))
+        allOwnedNfts = [...allOwnedNfts, ...newOwnedNfts]
+        pageKey = data.pageKey || null
+      } while (pageKey)
+
+      nfts.value = allOwnedNfts.sort((a, b) => Number(b.id) - Number(a.id))
     } catch (error) {
       console.error('Error fetching owned NFTs:', error)
       nftError.value = 'Failed to load owned NFTs'
