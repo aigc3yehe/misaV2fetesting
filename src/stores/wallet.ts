@@ -26,6 +26,7 @@ export const useWalletStore = defineStore('wallet', () => {
     userWalletAddress.value = ''
     isConnected.value = false
     walletInfo.value = null
+    localStorage.removeItem('misato_wallet_info')
   }
 
   const getOrCreateUuid = () => {
@@ -45,7 +46,23 @@ export const useWalletStore = defineStore('wallet', () => {
 
   const setWalletInfo = (info: { name: string; icon: string }) => {
     walletInfo.value = info
+    localStorage.setItem('misato_wallet_info', JSON.stringify(info))
   }
+
+  // 从 localStorage 恢复状态
+  const initializeFromStorage = () => {
+    const storedWalletInfo = localStorage.getItem('misato_wallet_info')
+    if (storedWalletInfo) {
+      try {
+        walletInfo.value = JSON.parse(storedWalletInfo)
+      } catch (e) {
+        console.error('Failed to parse stored wallet info')
+      }
+    }
+  }
+
+  // 初始化时调用
+  initializeFromStorage()
 
   return {
     misatoWalletAddress, // MISATO 的钱包地址
@@ -58,6 +75,7 @@ export const useWalletStore = defineStore('wallet', () => {
     setConnected,
     disconnectWallet,
     getOrCreateUuid,
-    setWalletInfo
+    setWalletInfo,
+    initializeFromStorage
   }
 }) 

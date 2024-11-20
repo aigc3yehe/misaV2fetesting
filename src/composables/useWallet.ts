@@ -14,7 +14,28 @@ export function useWallet() {
 
   onMounted(async () => {
     if (isConnected.value && connector.value) {
-      const connectorInfo = connectors.find(c => c.id === connector.value?.id)
+      try {
+        const connectorInfo = connectors.find(c => c.id === connector.value?.id)
+        if (connectorInfo) {
+          currentConnector.value = connectorInfo
+          walletStore.setWalletInfo({
+            name: connectorInfo.name || '',
+            icon: connectorInfo.icon || ''
+          })
+          if (address.value) {
+            walletStore.setUserWalletAddress(address.value)
+            walletStore.setConnected(true)
+          }
+        }
+      } catch (error) {
+        console.error('Failed to restore wallet state:', error)
+      }
+    }
+  })
+
+  watch(() => connector.value, (newConnector) => {
+    if (newConnector && isConnected.value) {
+      const connectorInfo = connectors.find(c => c.id === newConnector.id)
       if (connectorInfo) {
         currentConnector.value = connectorInfo
         walletStore.setWalletInfo({
@@ -23,7 +44,7 @@ export function useWallet() {
         })
       }
     }
-  })
+  }, { immediate: true })
 
   watch(() => isConnected.value, (newValue) => {
     if (newValue && address.value && currentConnector.value) {

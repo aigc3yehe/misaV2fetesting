@@ -59,28 +59,25 @@
     </n-scrollbar>
 
     <div class="input-container">
-      <n-input
-        v-model:value="inputMessage"
-        type="textarea"
-        :autosize="{ minRows: 1, maxRows: 3 }"
-        :placeholder="inputPlaceholder"
-        @keypress.enter.prevent="sendMessage"
-        class="chat-input"
-        :disabled="chatStore.processingState !== 'idle'"
-        :theme-overrides="inputThemeOverrides"
-        ref="inputRef"
-      >
-        <template #suffix>
-          <n-button quaternary circle class="send-button" @click="sendMessage" :disabled="!inputMessage.trim()">
-            <template #icon>
-              <n-icon>
-                <SendIcon v-if="!inputMessage.trim()" />
-                <SendIconHover v-else />
-              </n-icon>
-            </template>
-          </n-button>
-        </template>
-      </n-input>
+      <div class="input-wrapper">
+        <n-input
+          v-model:value="inputMessage"
+          type="textarea"
+          :autosize="{ minRows: 1, maxRows: 3 }"
+          :placeholder="inputPlaceholder"
+          @keypress.enter.prevent="sendMessage"
+          class="chat-input"
+          :disabled="chatStore.processingState !== 'idle'"
+          :theme-overrides="inputThemeOverrides"
+          ref="inputRef"
+        />
+        <n-button quaternary class="send-button" @click="sendMessage" :disabled="!inputMessage.trim()">
+          <n-icon :size="16">
+            <SendIcon v-if="!inputMessage.trim()" />
+            <SendIconHover v-else />
+          </n-icon>
+        </n-button>
+      </div>
     </div>
 
     <!-- 添加图片预览模态框 -->
@@ -209,21 +206,32 @@ const inputPlaceholder = computed(() => {
 
 // 添加主题覆盖配置
 const inputThemeOverrides = {
-  backgroundColor: '#58FFD066',
-  color: '#58FFD066',
-  colorFocus: '#58FFD066',
-  colorHover: '#58FFD066',
-  textAreaColor: '#58FFD066',
-  borderRadius: '16px',
-  border: '1px solid #4AC5A0',
-  textColor: '#58FFD0',
-  placeholderColor: 'rgba(88, 255, 208, 0.5)',
-  fontFamily: "'PPNeueBit', monospace",
+  backgroundColor: 'transparent',
+  color: 'transparent',
+  textAreaColor: 'transparent',
+  border: 'none',
+  borderRadius: '0',
+  textColor: '#2C0CB9',
+  placeholderColor: '#2C0CB9',
+  
+  // 移除所有状态效果
+  borderHover: 'none',
+  borderFocus: 'none',
+  borderPressed: 'none',
+  colorFocus: 'transparent',
+  colorHover: 'transparent',
+  colorPressed: 'transparent',
+  boxShadowFocus: 'none',
+  
+  // 字体相关
+  fontFamily: "'04b03', monospace",
   fontSize: '32px',
   fontSizeTextArea: '32px',
   padding: '8px 16px',
   heightMedium: '40px',
   lineHeight: '20px',
+  
+  // 确保子组件也应用相同的样式
   peers: {
     Input: {
       fontSize: '32px',
@@ -238,7 +246,7 @@ const inputThemeOverrides = {
 const showImagePreview = ref(false)
 const previewImageUrl = ref('')
 
-// 添加图片预览相关方法
+// 添加图片预览方法
 const openImagePreview = (imageUrl: string) => {
   previewImageUrl.value = imageUrl
   showImagePreview.value = true
@@ -298,76 +306,7 @@ const checkPayment = () => {
   }
 }
 
-// 在 script setup 部分添加
-const mockMessages = [
-  {
-    id: '1',
-    role: 'assistant',
-    type: 'text',
-    content: 'Hello! How can I help you today?',
-    time: '12:01'
-  },
-  {
-    id: '2',
-    role: 'user',
-    type: 'text',
-    content: 'Can you generate an image for me?',
-    time: '12:02'
-  },
-  {
-    id: '3',
-    role: 'assistant',
-    type: 'text',
-    content: 'Sure! Here\'s your generated image:',
-    time: '12:03'
-  },
-  {
-    id: '4',
-    role: 'assistant',
-    type: 'image',
-    content: 'https://placehold.co/300x300',
-    time: '12:03'
-  },
-  {
-    id: '5',
-    role: 'user',
-    type: 'text',
-    content: 'Thanks! Can you also show me some markdown?\n\n```js\nconsole.log("Hello World!");\n```',
-    time: '12:04'
-  },
-  {
-    id: '6',
-    role: 'assistant',
-    type: 'text',
-    content: '这是一个包含图片的消息 ![示例图片](https://placehold.co/300x300)',
-    time: '12:05'
-  },
-  {
-    id: '7',
-    role: 'assistant',
-    type: 'error',
-    content: 'Sorry, something went wrong. Please try again.',
-    time: '12:06'
-  },
-  {
-    id: '8',
-    role: 'assistant',
-    type: 'text',
-    show_status: 'send_eth',
-    content: 'Please send 0.05 ETH to continue.',
-    time: '12:07'
-  },
-  {
-    id: '9',
-    role: 'assistant',
-    type: 'error',
-    content: 'Please send 0.05 ETH to continue.',
-    time: '12:07'
-  }
-]
 
-// 替换现有的消息数组
-chatStore.messages = mockMessages
 </script>
 
 <style scoped>
@@ -384,15 +323,15 @@ chatStore.messages = mockMessages
 .messages-container {
   flex: 1;
   min-height: 0;
-  padding: 16px;
+  padding: 8px;
 }
 
 .chat-messages {
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 0 16px;
-  padding-right: 18px;
+  gap: 8px;
+  padding: 0 8px;
+  padding-right: 14px;
 }
 
 .message {
@@ -556,12 +495,12 @@ chatStore.messages = mockMessages
 }
 
 .input-container {
-  padding: 16px;
+  padding: 8px;
 }
 
 .chat-input {
   :deep(.n-input__suffix) {
-    margin-left: 12px;
+    margin-left: 0px;
     display: flex;
     align-items: center;
   }
@@ -697,5 +636,79 @@ chatStore.messages = mockMessages
 
 .message-bubble.eth-status {
   width: 322px;
+}
+
+.input-wrapper {
+  display: flex;
+  padding: 0px 0px;
+  padding-left: 4px;
+  padding-right: 24px;
+  align-items: center;
+  gap: 12px;
+  flex: 1 0 0;
+  background: #F9D7EF;
+}
+
+.chat-input {
+  flex: 1;
+}
+
+.chat-input :deep(.n-input) {
+  background: transparent;
+  border: none;
+}
+
+.send-button {
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  min-width: auto;
+  background: transparent !important;
+}
+
+.send-button:hover {
+  background: transparent !important;
+}
+
+/* 添加额外的样式覆盖 */
+.chat-input :deep(.n-input) {
+  background: transparent !important;
+  border: none !important;
+}
+
+.chat-input :deep(.n-input:hover),
+.chat-input :deep(.n-input:focus),
+.chat-input :deep(.n-input:active) {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.chat-input :deep(.n-input__textarea-el),
+.chat-input :deep(.n-input__textarea-el:hover),
+.chat-input :deep(.n-input__textarea-el:focus) {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 处理自动填充的背景色 */
+.chat-input :deep(textarea:-webkit-autofill),
+.chat-input :deep(textarea:-webkit-autofill:hover), 
+.chat-input :deep(textarea:-webkit-autofill:focus) {
+  -webkit-box-shadow: 0 0 0 1000px #F9D7EF inset !important;
+  -webkit-text-fill-color: #2C0CB9 !important;
+  transition: background-color 5000s ease-in-out 0s;  /* 防止过渡动画显示默认背景色 */
+}
+
+/* 使用多层选择器提高优先级 */
+.chat-content .input-wrapper .chat-input :deep(.n-input.n-input--textarea .n-input__textarea-el),
+.chat-content .input-wrapper .chat-input :deep(.n-input.n-input--textarea .n-input__textarea-mirror),
+.chat-content .input-wrapper .chat-input :deep(.n-input.n-input--textarea .n-input__placeholder) {
+  font-family: '04b03', monospace !important;
+  font-size: 12px !important;
+  font-style: normal !important;
+  font-weight: 400 !important;
+  line-height: 16px !important;
+  color: #2C0CB9 !important;
 }
 </style> 

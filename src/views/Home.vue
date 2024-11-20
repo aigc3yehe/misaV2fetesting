@@ -345,7 +345,8 @@ const handleWalletClick = async () => {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 2px 12px;
+  padding: 2px 6px;
+  padding-right: 12px;
   background: var(--Brand-Primary, #F0F);
 }
 
@@ -434,16 +435,16 @@ const handleWalletClick = async () => {
 
 .wallet-icon-wrapper {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .main-wallet-icon {
-  width: 28px;
-  height: 28px;
+  width: 24px;
+  height: 24px;
 }
 
 .status-icon {
