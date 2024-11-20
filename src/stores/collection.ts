@@ -9,10 +9,12 @@ export interface Collection {
   description: string
   imageUrl: string
   contract: string
-  nfts: number
+  nfts: string
 }
 
 export const useCollectionStore = defineStore('collection', () => {
+  // 常量
+  const CONTRACT_ADDRESS = '0xccb6B629f5434102e37175BDac8262722180a62f'
   const collections = ref<Collection[]>([])
   const isLoadingCollections = ref(false)
   const collectionError = ref('')
@@ -22,24 +24,22 @@ export const useCollectionStore = defineStore('collection', () => {
     collectionError.value = ''
     
     try {
+      const response = await fetch(`https://base-mainnet.g.alchemy.com/nft/v3/goUyG3r-JBxlrxzsqIoyv0b_W-LwScsN/getContractMetadata?contractAddress=${CONTRACT_ADDRESS}`, {
+        method: 'GET',
+        headers: { accept: 'application/json' }
+      })
+      
+      const data = await response.json()
+      
       collections.value = [{
-        id: "0xccb6b629f5434102e37175bdac8262722180a62f",
+        id: data.address,
         chain: "base",
-        name: "MISATO Frens",
-        symbol: "misato-frens",
+        name: data.name,
+        symbol: 'misato-frens',
         description: "The world's first Agent-operated creative studio, $MISATO Studio, presents its NFT collection.",
         imageUrl: "/misato_icon.jpg",
-        contract: "0xccb6b629f5434102e37175bdac8262722180a62f",
-        nfts: 267
-      },{
-        id: "0xccb6b629f5434102e37175bdac8262722180a62f",
-        chain: "base",
-        name: "MISATO Frens",
-        symbol: "misato-frens",
-        description: "The world's first Agent-operated creative studio, $MISATO Studio, presents its NFT collection.",
-        imageUrl: "/misato_icon.jpg",
-        contract: "0xccb6b629f5434102e37175bdac8262722180a62f",
-        nfts: 267
+        contract: data.address,
+        nfts: data.totalSupply
       }]
     } catch (error) {
       console.error('Error setting collections:', error)

@@ -64,8 +64,8 @@
                     :key="`img-${nft.contract}-${nft.id}`"
                     :src="nft.image"
                     :alt="nft.name"
+                    :nft="nft"
                     class="nft-image"
-                    @error="handleImageError"
                   />
                 </div>
                 <div class="nft-info">
@@ -259,11 +259,25 @@ const LazyImage = defineComponent({
     src: String,
     alt: String
   },
-  setup(props) {
+  setup(props, { attrs }) {
     const imgRef = ref<HTMLImageElement | null>(null)
     const isLoaded = ref(false)
     const observer = ref<IntersectionObserver | null>(null)
     const currentSrc = ref('')
+    
+    // 处理图片加载错误
+    const handleError = (e: Event) => {
+      const target = e.target as HTMLImageElement
+      const nft = (attrs as any).nft
+      
+      if (nft?.imageOriginal && currentSrc.value !== nft.imageOriginal) {
+        // 如果缩略图加载失败且有原图,则尝试加载原图
+        currentSrc.value = nft.imageOriginal
+      } else {
+        // 如果原图也加载失败或没有原图,则使用默认图片
+        currentSrc.value = defaultNftImage
+      }
+    }
 
     // 使用 watchEffect 来处理 src 变化
     watchEffect(() => {
@@ -300,7 +314,8 @@ const LazyImage = defineComponent({
       src: currentSrc.value,
       class: ['nft-image', { 'loaded': isLoaded.value }],
       alt: props.alt,
-      loading: 'lazy'
+      loading: 'lazy',
+      onError: handleError
     })
   }
 })

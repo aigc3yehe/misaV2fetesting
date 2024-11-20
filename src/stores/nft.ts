@@ -5,6 +5,7 @@ export interface NFT {
   id: string
   name: string
   image: string
+  imageOriginal?: string
   contract: string
   description?: string
 }
@@ -57,6 +58,7 @@ export const useNFTStore = defineStore('nft', () => {
             }
             image?: {
               originalUrl?: string
+              thumbnailUrl?: string
               cachedUrl?: string
             }
             description?: string
@@ -72,7 +74,8 @@ export const useNFTStore = defineStore('nft', () => {
         const newNfts = data.nfts.map((nft: any) => ({
           id: nft.tokenId,
           name: nft.name || nft.raw?.metadata?.name || `MISATO Frens #${nft.tokenId}`,
-          image: nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.cachedUrl,
+          image: nft.image?.thumbnailUrl || nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.cachedUrl,
+          imageOriginal: nft.image?.originalUrl || nft.raw?.metadata?.image || nft.image?.cachedUrl,
           description: nft.description || nft.raw?.metadata?.description,
           contract: nft.contract.address
         }))

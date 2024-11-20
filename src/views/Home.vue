@@ -9,38 +9,18 @@
       </div>
       <div class="header-right">
         <div class="icon-group">
-          <n-button quaternary circle class="icon-button" tag="a" href="https://twitter.com/misato_studio" target="_blank">
-            <template #icon>
-              <n-icon>
-                <XIcon class="icon-default" />
-                <XIconHover class="icon-hover" />
-              </n-icon>
-            </template>
-          </n-button>
-          <n-button quaternary circle class="icon-button" tag="a" href="https://github.com/misato-studio" target="_blank">
-            <template #icon>
-              <n-icon>
-                <GithubIcon class="icon-default" />
-                <GithubIconHover class="icon-hover" />
-              </n-icon>
-            </template>
-          </n-button>
-          <n-button quaternary circle class="icon-button" tag="a" href="https://t.me/misato_studio" target="_blank">
-            <template #icon>
-              <n-icon>
-                <TelegramIcon class="icon-default" />
-                <TelegramIconHover class="icon-hover" />
-              </n-icon>
-            </template>
-          </n-button>
-          <n-button quaternary circle class="icon-button" tag="a" href="/docs" target="_blank">
-            <template #icon>
-              <n-icon>
-                <DocsIcon class="icon-default" />
-                <DocsIconHover class="icon-hover" />
-              </n-icon>
-            </template>
-          </n-button>
+          <a href="https://x.com/Misato_virtuals" target="_blank">
+            <img src="@/assets/x.png" class="social-icon" />
+          </a>
+          <a href="https://app.virtuals.io/virtuals/657" target="_blank">
+            <img src="@/assets/virtuals.png" class="social-icon" />
+          </a>
+          <a href="https://t.me/misatocoin" target="_blank">
+            <img src="@/assets/telegram.png" class="social-icon" />
+          </a>
+          <a href="https://dexscreener.com/base/0x863e3a73c604d5038d41e2512272a73585f70017" target="_blank">
+            <img src="@/assets/dexscreener.png" class="social-icon" />
+          </a>
         </div>
         
         <div 
@@ -93,19 +73,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, h, watch } from 'vue'
-import { NIcon, NButton, NConfigProvider } from 'naive-ui'
+import { ref, h, watch } from 'vue'
+import { NIcon, NConfigProvider } from 'naive-ui'
 import { darkTheme } from 'naive-ui'
 import ChatPanel from '@/components/chat/ChatPanel.vue'
 import NFTGallery from '@/components/gallery/NFTGallery.vue'
-import XIcon from '@/assets/icons/x.svg?component'
-import XIconHover from '@/assets/icons/x-hover.svg?component'
-import GithubIcon from '@/assets/icons/github.svg?component'
-import GithubIconHover from '@/assets/icons/github-hover.svg?component'
-import TelegramIcon from '@/assets/icons/tg.svg?component'
-import TelegramIconHover from '@/assets/icons/tg-hover.svg?component'
-import DocsIcon from '@/assets/icons/docs.svg?component'
-import DocsIconHover from '@/assets/icons/docs-hover.svg?component'
 import LogoIcon from '@/assets/icons/logo.svg?component'
 import SmallBaseIcon from '@/assets/icons/small_base.svg?component'
 import { useWallet } from '@/composables/useWallet'
@@ -343,7 +315,7 @@ const handleWalletClick = async () => {
 .icon-group {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
 .wallet-button {
@@ -490,5 +462,24 @@ const handleWalletClick = async () => {
 
 .resize-trigger:hover {
   opacity: 0.6;
+}
+
+.social-icon {
+  width: 25px;
+  height: 25px;
+  object-fit: contain;
+}
+
+.icon-group a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+/* 移除链接的默认样式和hover效果 */
+.icon-group a:hover {
+  background: none;
+  box-shadow: none;
 }
 </style>
