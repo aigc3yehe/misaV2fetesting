@@ -180,7 +180,7 @@ watch(() => walletStore.isConnected, (newValue) => {
 
 .wallet-card {
   position: absolute;
-  top: 8px;
+  top: 24px;
   right: 8px;
   width: 110px;
   display: flex;
