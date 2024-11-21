@@ -8,7 +8,13 @@
         <h1 class="title">MISATO Studio</h1>
       </div>
       <div class="header-right">
-        <div class="icon-group">
+        <div 
+          class="icon-group"
+          :class="{ 
+            'mobile': isMobile,
+            'menu-open': isMenuOpen 
+          }"
+        >
           <a href="https://x.com/Misato_virtuals" target="_blank">
             <img src="@/assets/x.png" class="social-icon" />
           </a>
@@ -40,42 +46,57 @@
           </div>
           <span>{{ isConnected ? formatAddress(address || '') : 'Connect' }}</span>
         </div>
+
+        <div v-if="isMobile" class="menu-toggle" @click="toggleMenu">
+          <n-icon size="24">
+            <MenuIcon v-if="!isMenuOpen" />
+            <CloseIcon v-else />
+          </n-icon>
+        </div>
       </div>
     </header>
 
     <main class="main-content">
       <n-config-provider :theme="theme">
-        <n-split 
-          direction="horizontal" 
-          :default-size="0.42" 
-          :max="0.75" 
-          :min="0.42"
-          :resize-trigger-size="1"
-        >
-          <template #1>
+        <template v-if="!isMobile">
+          <n-split 
+            direction="horizontal" 
+            :default-size="0.42" 
+            :max="0.75" 
+            :min="0.42"
+            :resize-trigger-size="1"
+          >
+            <template #1>
+              <n-message-provider>
+                <ChatPanel />
+              </n-message-provider>
+            </template>
+            <template #2>
+              <n-message-provider>
+                <FeaturedCollection v-if="galleryStore.currentView === 'featured'" />
+                <NFTGallery v-else />
+              </n-message-provider>
+            </template>
+            <template #resize-trigger>
+              <div class="resize-trigger"></div>
+            </template>
+          </n-split>
+        </template>
+        
+        <template v-else>
+          <div class="mobile-layout">
             <n-message-provider>
               <ChatPanel />
             </n-message-provider>
-          </template>
-          <template #2>
-            <n-message-provider>
-              <keep-alive v-if="galleryStore.currentView === 'featured'">
-                <FeaturedCollection />
-              </keep-alive>
-              <NFTGallery v-else />
-            </n-message-provider>
-          </template>
-          <template #resize-trigger>
-            <div class="resize-trigger"></div>
-          </template>
-        </n-split>
+          </div>
+        </template>
       </n-config-provider>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, h, watch } from 'vue'
+import { ref, h, watch, watchEffect } from 'vue'
 import { NIcon, NConfigProvider } from 'naive-ui'
 import { darkTheme } from 'naive-ui'
 import ChatPanel from '@/components/chat/ChatPanel.vue'
@@ -87,12 +108,20 @@ import { useDialog } from 'naive-ui'
 import { useWalletStore } from '@/stores/wallet'
 import { useGalleryStore } from '@/stores'
 import FeaturedCollection from '@/components/gallery/FeaturedCollection.vue'
+import { useDevice } from '@/composables/useDevice'
+import MenuIcon from '@/assets/icons/menu.svg?component'
+import CloseIcon from '@/assets/icons/close.svg?component'
 
 const theme = ref(darkTheme)
 const { isConnected, address, handleConnect, handleDisconnect, formatAddress } = useWallet()
 const dialog = useDialog()
 const walletStore = useWalletStore()
 const galleryStore = useGalleryStore()
+const { isMobile } = useDevice()
+const isMenuOpen = ref(false)
+const toggleMenu = () => {
+  isMenuOpen.value = !isMenuOpen.value
+}
 
 watch(() => isConnected.value, (newValue) => {
   walletStore.setConnected(newValue)
@@ -128,6 +157,10 @@ const handleWalletClick = async () => {
     console.error('Wallet operation error:', error)
   }
 }
+
+watchEffect(() => {
+  console.log('isMobile value changed:', isMobile.value)
+})
 </script>
 
 <style scoped>
@@ -483,5 +516,142 @@ const handleWalletClick = async () => {
 .icon-group a:hover {
   background: none;
   box-shadow: none;
+}
+
+.mobile-layout {
+  height: 100%;
+  overflow: hidden;
+  background: var(--background-primary);
+}
+
+/* 移动端基础样式调整 */
+@media (max-width: 768px) {
+  .header {
+    padding: 0 12px;
+  }
+  
+  .icon-group {
+    gap: 12px;
+  }
+  
+  .title {
+    font-size: 18px;
+  }
+  
+  .social-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .wallet-button {
+    height: 24px;
+    padding: 0px 3px;
+    padding-right: 6px;
+    gap: 3px;
+  }
+
+  .wallet-button span {
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .wallet-icon-wrapper {
+    width: 24px;
+    height: 24px;
+  }
+
+  .main-wallet-icon {
+    width: 24px;
+    height: 24px;
+  }
+
+  .status-icon {
+    width: 12px;
+    height: 12px;
+    bottom: -2px;
+    right: -2px;
+  }
+}
+
+.menu-toggle {
+  display: none;
+  cursor: pointer;
+  padding: 6px;
+  margin-left: -12px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menu-toggle :deep(.n-icon) {
+  width: 24px !important;
+  height: 24px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 768px) {
+  .menu-toggle {
+    display: flex;
+  }
+
+  .header {
+    position: relative;
+  }
+
+  .icon-group.mobile {
+    position: absolute;
+    top: 64px;
+    left: 0;
+    right: 0;
+    background: var(--Background-Primary, #FBF7F1);
+    display: flex;
+    width: 100%;
+    padding: 24px 16px;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    
+    /* 默认隐藏 */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+  }
+
+  .icon-group.mobile.menu-open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  /* 非移动端时显示原来的样式 */
+  .icon-group:not(.mobile) {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* 移动端时隐藏原来的图标组 */
+  .icon-group.mobile:not(.menu-open) {
+    display: none;
+  }
+
+  /* 调整移动端社交图标尺寸 */
+  .icon-group.mobile .social-icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .icon-group.mobile a {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 </style>

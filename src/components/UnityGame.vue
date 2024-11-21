@@ -1,18 +1,12 @@
 <template>
-  <div class="unity-wrapper">
-    <!-- 星空背景 -->
-    <div id="stars" ref="starsRef">
-      <div id="stars2"></div>
-      <div id="stars3"></div>
-    </div>
-    
+  <div class="unity-wrapper" ref="wrapperRef">
     <!-- Unity 容器 -->
-    <div id="unity-container" class="unity-desktop">
+    <div id="unity-container">
       <!-- 加载进度条 -->
       <div id="unity-loading-bar" ref="loadingBarRef" v-show="loading">
         <div id="unity-progress-bar-full" :style="{ width: `${loadingProgress}%` }"></div>
         <p id="loadingtext" class="loading-text">
-          玩命正在加载：{{ loadingProgress.toFixed(2) }}%
+          Loading: {{ loadingProgress.toFixed(2) }}%
         </p>
       </div>
 
@@ -32,6 +26,7 @@ const starsRef = ref<HTMLElement | null>(null)
 const loadingBarRef = ref<HTMLElement | null>(null)
 const loading = ref(true)
 const loadingProgress = ref(0)
+const wrapperRef = ref<HTMLElement | null>(null)
 
 // 显示警告/错误信息
 const unityShowBanner = (msg: string, type: 'error' | 'warning') => {
@@ -63,16 +58,29 @@ const handleResize = () => {
 // Unity 加载完成的回调
 const UnityStartCallback = (instance: any) => {
   loading.value = false
-  if (loadingBarRef.value) loadingBarRef.value.style.display = 'none'
+  if (loadingBarRef.value) loadingBarRef.value.style.opacity = '0'
   if (starsRef.value) starsRef.value.style.opacity = '0'
   if (unityCanvas.value) unityCanvas.value.style.opacity = '1'
+  if (wrapperRef.value) {
+    wrapperRef.value.classList.add('loading-complete')
+  }
 
-  // 判断是否是移动设备
   const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
-  instance.SendMessage('PlatformSystem', 'NotificationPlatform', mobile ? "0" : "1")
+  window.unityInstance.SendMessage('PlatformSystem', 'NotificationPlatform', mobile ? "0" : "1")
+
+  setTimeout(Call, 2000)
+}
+
+// 添加 Call 函数
+const Call = () => {
+  window.unityInstance.SendMessage('JSCall', 'AddVoice', '{"content": "Escape reality with a conversation!","finish": false}')
+  window.unityInstance.SendMessage('JSCall', 'AddVoice', '{"content": " I\'m Misato Katsuragi. How may I assist you?","finish": true}')
 }
 
 onMounted(() => {
+  // 将回调函数挂载到 window 对象
+  window.UnityStartCallback = UnityStartCallback
+  
   // 检查移动设备
   const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   if (mobile) {
@@ -91,27 +99,19 @@ onMounted(() => {
   
   const buildUrl = "/Build"
   const config = {
-    dataUrl: `${buildUrl}/9d8e06c17a6184867211faff66d8798f.data.br`,
+    arguments: [],
+    dataUrl: `${buildUrl}/eed58a25986153caf5f6a6727fe43216.data.br`,
     frameworkUrl: `${buildUrl}/72c69d1ad07615e4ab8bc8a2a60e6360.framework.js.br`,
-    codeUrl: `${buildUrl}/36ec552cb44c01f6bd144785805801d0.wasm.br`,
+    codeUrl: `${buildUrl}/ebd7a2ea70566abd3704720ecfeb4a0e.wasm.br`,
     streamingAssetsUrl: "StreamingAssets",
     companyName: "lkz",
     productName: "数字人",
     productVersion: "1.2",
     showBanner: unityShowBanner,
-    cacheControl: (url: string) => {
-      if (url.endsWith('.br') || url.endsWith('.gz')) {
-        return 'public, max-age=2592000' // 30天缓存
-      }
-      if (url.endsWith('.html') || url.endsWith('.json')) {
-        return 'no-store, no-cache, must-revalidate'
-      }
-      return ''
-    }
   }
 
   const script = document.createElement("script")
-  script.src = `${buildUrl}/44b09deef429ef689c60cc2fb7e6c8a0.loader.js`
+  script.src = `${buildUrl}/142f057e0cfdd4168f57bf07013021a5.loader.js`
   script.onload = () => {
     // @ts-ignore
     createUnityInstance(unityCanvas.value, config, (progress: number) => {
@@ -130,6 +130,8 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  // 清理全局函数
+  window.UnityStartCallback = undefined
   window.removeEventListener('resize', handleResize)
 })
 </script>
@@ -140,50 +142,57 @@ onUnmounted(() => {
   height: 100%;
   position: relative;
   overflow: hidden;
-  background: #1F1F20;
-  aspect-ratio: 16 / 9;
+  background: #FBF7F1;
+}
+
+#unity-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
 }
 
 #unity-canvas {
   width: 100%;
   height: 100%;
-  background: #1F1F20;
+  background: transparent;
   opacity: 0;
-  transition: opacity 1s;
   image-rendering: -webkit-optimize-contrast;
   -webkit-font-smoothing: antialiased;
 }
 
 #unity-loading-bar {
   position: absolute;
-  left: 20%;
-  top: 90%;
-  width: 60%;
-  height: 5px;
-  background-color: #fff;
-  border: 1px solid #ccc;
-  border-radius: 10px;
-  transition: opacity 1s;
+  left: 50%;
+  top: 18vh;
+  transform: translateX(-50%);
+  width: 240px;
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--brand-primary);
+  border-radius: 2px;
   z-index: 10;
 }
 
 #unity-progress-bar-full {
   position: absolute;
-  left: 0%;
-  top: 0%;
-  width: 0%;
+  left: 0;
+  top: 0;
+  width: 0;
   height: 100%;
-  background-color: #ccc;
-  border-radius: 10px;
-  transition: width 400ms linear;
+  background-color: var(--brand-primary);
+  border-radius: 1px;
+  transition: width 400ms ease-out;
 }
 
 .loading-text {
-  margin-top: 15px;
-  color: white;
-  font-size: 12px;
-  white-space: nowrap;
+  position: absolute;
+  width: 100%;
+  top: 10px;
   text-align: center;
+  font-family: '04b03', monospace;
+  font-size: 14px;
+  color: var(--brand-primary);
+  text-shadow: 0 0 2px rgba(251, 89, 245, 0.3);
 }
 
 #unity-warning {
@@ -197,52 +206,31 @@ onUnmounted(() => {
   z-index: 10;
 }
 
-/* 星空背景样式 */
-#stars {
+/* 添加新的背景样式 */
+.unity-wrapper::before,
+.unity-wrapper::after {
+  content: '';
   position: absolute;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  background: #1F1F20;
-  transition: opacity 1s;
+  pointer-events: none;
+}
+
+.unity-wrapper::before {
+  background-color: #FBF7F1;
+  background-image: url('@/assets/icons/bg.svg');
+  background-repeat: repeat;
+  background-position: top center;
+  background-size: contain;
+  opacity: 1;
   z-index: 1;
+  transition: opacity 0.3s ease;
 }
 
-#stars2 {
-  width: 100%;
-  height: 100%;
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==);
-  animation: animStar 100s linear infinite;
-}
-
-#stars3 {
-  width: 100%;
-  height: 100%;
-  background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==);
-  animation: animStar 150s linear infinite;
-}
-
-@keyframes animStar {
-  from {
-    transform: translateY(0);
-  }
-  to {
-    transform: translateY(-2000px);
-  }
-}
-
-#unity-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-}
-
-.unity-desktop {
-  width: 100%;
-  height: 100%;
-}
-
-.unity-mobile {
-  width: 100%;
-  height: 100%;
+/* 添加加载完成后的样式 */
+.loading-complete::before {
+  opacity: 0;
 }
 </style> 

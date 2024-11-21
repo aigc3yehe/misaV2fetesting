@@ -99,12 +99,32 @@ export const useChatStore = defineStore('chat', () => {
         throw new Error(result.error.message)
       }
 
+      // 将 AI 回复分段发送到 Unity
+      const sentences = result.content.split(/[.,!?。！？]/g).filter(Boolean)
+      const lastIndex = sentences.length - 1
+
+      // 添加消息到聊天记录
       await addMessage({
         id: Date.now() + 1,
         type: 'text',
         role: 'assistant',
         content: result.content,
         time: formatTime(new Date())
+      })
+
+      // 逐句发送到 Unity 进行语音播放
+      sentences.forEach((sentence: string, index: number) => {
+        const cleanSentence = sentence.trim()
+        if (cleanSentence) {
+          window.unityInstance?.SendMessage(
+            'JSCall', 
+            'AddVoice', 
+            JSON.stringify({
+              content: cleanSentence,
+              finish: index === lastIndex
+            })
+          )
+        }
       })
 
       if (result.request_id) {

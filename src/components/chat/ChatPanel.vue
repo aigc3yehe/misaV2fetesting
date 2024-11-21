@@ -1,9 +1,8 @@
 <template>
   <div class="chat-wrapper">
-    <!-- Unity 游戏背景 - 临时使用图片占位 -->
     <div class="unity-container">
-      <!-- <UnityGame class="unity-background" /> -->
-      <div class="temp-background"></div>
+      <UnityGame class="unity-background" />
+      <!-- <div class="temp-background"></div> -->
     </div>
     
     <!-- 主聊天界面 -->
@@ -89,11 +88,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import ChevronUpIcon from '@/assets/icons/chevron-up-r.svg?component'
-import ChevronDownIcon from '@/assets/icons/chevron-down-r.svg?component'
 import { useMessage } from 'naive-ui'
 import { useWalletStore } from '@/stores'
-import ChatTitleBackgroundSVG from '@/assets/icons/chat_title_bg.svg?component'
 import LogoIcon from '@/assets/icons/small_logo.svg?component'
 import UnityGame from '../UnityGame.vue'
 import ChatContent from './ChatContent.vue'
@@ -107,7 +103,6 @@ const isExpanded = ref(true)
 const walletStore = useWalletStore()
 const message = useMessage()
 const chatState = ref<'ready' | 'queuing' | 'not-connected'>('not-connected')
-const show = ref(true)
 const { handleConnect } = useWallet()
 
 const toggleExpand = () => {
