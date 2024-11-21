@@ -86,7 +86,46 @@
         <template v-else>
           <div class="mobile-layout">
             <n-message-provider>
-              <ChatPanel />
+              <div class="mobile-panels">
+                <div 
+                  v-show="mobileActivePanel !== 'gallery'"
+                  class="mobile-panel-header clickable"
+                  :class="{ 'featured': galleryStore.currentView === 'featured' }"
+                  @click="toggleMobilePanel('gallery')"
+                >
+                  <div class="header-content">
+                    <n-icon size="20" class="panel-icon">
+                      <GalleryIcon />
+                    </n-icon>
+                    <span class="panel-title">{{ galleryStore.currentView === 'featured' ? 'Featured Collection' : 'NFT Gallery' }}</span>
+                  </div>
+                </div>
+                
+                <div class="mobile-panel-content" v-show="mobileActivePanel === 'gallery'">
+                  <FeaturedCollection v-if="galleryStore.currentView === 'featured'" />
+                  <NFTGallery v-else />
+                </div>
+
+                <div 
+                  v-show="mobileActivePanel !== 'chat'"
+                  class="mobile-panel-header chat-header clickable"
+                  @click="toggleMobilePanel('chat')"
+                >
+                  <div class="header-content">
+                    <n-icon size="20" class="panel-icon">
+                      <UpIcon />
+                    </n-icon>
+                    <n-icon size="20" class="chat-icon">
+                      <ChatIcon />
+                    </n-icon>
+                    <span class="chat-title">MISATO</span>
+                  </div>
+                </div>
+                
+                <div class="mobile-panel-content" v-show="mobileActivePanel === 'chat'">
+                  <ChatPanel />
+                </div>
+              </div>
             </n-message-provider>
           </div>
         </template>
@@ -111,6 +150,9 @@ import FeaturedCollection from '@/components/gallery/FeaturedCollection.vue'
 import { useDevice } from '@/composables/useDevice'
 import MenuIcon from '@/assets/icons/menu.svg?component'
 import CloseIcon from '@/assets/icons/close.svg?component'
+import ChatIcon from '@/assets/icons/chat_icon.svg?component'
+import GalleryIcon from '@/assets/icons/down.svg?component'
+import UpIcon from '@/assets/icons/up.svg?component'
 
 const theme = ref(darkTheme)
 const { isConnected, address, handleConnect, handleDisconnect, formatAddress } = useWallet()
@@ -161,6 +203,12 @@ const handleWalletClick = async () => {
 watchEffect(() => {
   console.log('isMobile value changed:', isMobile.value)
 })
+
+const mobileActivePanel = ref('chat')
+
+const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
+  mobileActivePanel.value = mobileActivePanel.value === panel ? panel : panel
+}
 </script>
 
 <style scoped>
@@ -653,5 +701,169 @@ watchEffect(() => {
     align-items: center;
     justify-content: center;
   }
+}
+
+.mobile-panels {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--background-primary);
+}
+
+.mobile-panel-header {
+  height: 32px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: #EBD2EF;
+  border: 1px solid #2C0CB9;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 0px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.panel-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.panel-icon :deep(svg) {
+  width: 20px;
+  height: 20px;
+}
+
+.panel-title {
+  color: var(--Text-P, #2C0CB9);
+  font-family: '04b03';
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  margin-left: 8px;
+}
+
+.mobile-panel-content {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Gallery 背景样式 */
+.mobile-panel-content:has(> .featured-collection),
+.mobile-panel-content:has(> .nft-gallery) {
+  background: #FBF7F1;
+  position: relative;
+}
+
+.mobile-panel-content:has(> .featured-collection)::before,
+.mobile-panel-content:has(> .featured-collection)::after,
+.mobile-panel-content:has(> .nft-gallery)::before,
+.mobile-panel-content:has(> .nft-gallery)::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.mobile-panel-content:has(> .featured-collection)::before,
+.mobile-panel-content:has(> .nft-gallery)::before {
+  background-image: url('@/assets/icons/bg.svg');
+  background-repeat: repeat;
+  background-position: top center;
+  background-size: contain;
+  opacity: 1;
+}
+
+.mobile-panel-content:has(> .featured-collection)::after,
+.mobile-panel-content:has(> .nft-gallery)::after {
+  background-image: url('@/assets/bg_line.png');
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-size: 100% 100%;
+  opacity: 1;
+}
+
+/* 确保内容在背景之上 */
+.mobile-panel-content > * {
+  height: 100%;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 768px) {
+  .mobile-layout {
+    height: calc(100vh - 64px);
+    overflow: hidden;
+  }
+}
+
+/* Featured Collection header 特殊样式 */
+.mobile-panel-header.featured {
+  background: #FBF7F1;
+}
+
+.mobile-panel-header.featured::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url('@/assets/icons/bg.svg');
+  background-repeat: repeat;
+  background-position: top center;
+  background-size: contain;
+  opacity: 1;
+  pointer-events: none;
+}
+
+/* Chat 折叠面板特殊样式 */
+.chat-header .header-content {
+  display: flex;
+  align-items: center;
+}
+
+.chat-header .panel-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.chat-header .chat-icon {
+  width: 20px;
+  height: 20px;
+  margin-left: 8px;
+  margin-right: 7px;
+}
+
+.chat-header .chat-title {
+  color: var(--Text-P, #2C0CB9);
+  font-family: '04b03';
+  font-size: 18px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 18px;
+}
+
+/* 确保所有图标大小一致 */
+.panel-icon :deep(svg),
+.chat-icon :deep(svg) {
+  width: 20px;
+  height: 20px;
 }
 </style>
