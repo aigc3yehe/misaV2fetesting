@@ -29,16 +29,20 @@ export default defineConfig({
     chunkSizeWarningLimit: 2000,
     rollupOptions: {
       output: {
+        manualChunks: undefined,
         assetFileNames: (assetInfo) => {
-          if (assetInfo.name) {
-            if (assetInfo.name.endsWith('.br')) {
-              return '[name].[hash][extname]'
-            }
-            if (assetInfo.name.endsWith('.gz')) {
-              return '[name].[hash][extname]'
-            }
+          const info = assetInfo.name.split('.');
+          const extType = info[info.length - 1];
+          if (/\.(mp4|webm|ogg|mp3|wav|flac|aac)(\?.*)?$/i.test(assetInfo.name)) {
+            return `assets/media/[name]-[hash][extname]`;
           }
-          return '[name].[hash][extname]'
+          if (/\.(woff2?|eot|ttf|otf)(\?.*)?$/i.test(assetInfo.name)) {
+            return `assets/fonts/[name]-[hash][extname]`;
+          }
+          if (/\.(br)(\?.*)?$/i.test(assetInfo.name)) {
+            return `[name].[hash][extname]`;
+          }
+          return `assets/${extType}/[name]-[hash][extname]`;
         }
       }
     }
