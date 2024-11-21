@@ -67,8 +67,6 @@ const UnityStartCallback = (instance: any) => {
 
   const mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)
   window.unityInstance.SendMessage('PlatformSystem', 'NotificationPlatform', mobile ? "0" : "1")
-
-  setTimeout(Call, 2000)
 }
 
 // 添加 Call 函数
@@ -121,6 +119,7 @@ onMounted(() => {
     }).then((unityInstance: any) => {
       window.unityInstance = unityInstance
       UnityStartCallback(unityInstance)
+      setTimeout(Call, 2000)
     }).catch((message: string) => {
       console.error('Unity 加载失败:', message)
       unityShowBanner(message, 'error')
