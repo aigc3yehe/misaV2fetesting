@@ -8,6 +8,18 @@
     <link rel="stylesheet" href="/TemplateData/style_u1.css">
     <link rel="stylesheet" href="/TemplateData/1.css">
     <title>MISATO Studio</title>
+    <script>
+      // 设置 rem 基准值
+      (function() {
+        function setRem() {
+          const designWidth = 390 // 设计稿宽度
+          const scale = document.documentElement.clientWidth / designWidth
+          document.documentElement.style.fontSize = (100 * scale) + 'px' // 设置1rem = 100px在设计稿中的大小
+        }
+        setRem()
+        window.addEventListener('resize', setRem)
+      })()
+    </script>
     <script type="module" src="/src/main.ts"></script>
   </head>
   <body>

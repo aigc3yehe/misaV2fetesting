@@ -97,6 +97,7 @@ import { useGalleryStore } from '@/stores'
 import selectedIcon from '@/assets/icons/selected.svg?component'
 import unselectIcon from '@/assets/icons/unselect.svg?component'
 import { NVirtualList } from 'naive-ui'
+import { useDevice } from '@/composables/useDevice'
 
 const message = useMessage()
 const nftStore = useNFTStore()
@@ -108,6 +109,7 @@ const refreshKey = ref(0)
 const containerRef = ref<HTMLElement | null>(null)
 const itemsPerRow = ref(5)
 const gapWidth = ref(16)
+const { isMobile } = useDevice()
 
 // 移除旧的 filteredNFTs 计算属性
 const filteredNFTs = computed(() => {
@@ -119,19 +121,24 @@ const filteredNFTs = computed(() => {
 const calculateLayout = () => {
   if (!containerRef.value) return
   
-  const containerWidth = containerRef.value.clientWidth - 48 // 减去左右padding (24px * 2)
-  const cardWidth = 200 // 卡片固定宽度
-  const minGap = 16 // 最小间距
-  
-  // 计算能放下的卡片数量
-  const count = Math.floor((containerWidth + minGap) / (cardWidth + minGap))
-  itemsPerRow.value = Math.max(1, count)
-  
-  // 计算实际间距
-  const totalGapWidth = containerWidth - (cardWidth * itemsPerRow.value)
-  const gaps = itemsPerRow.value - 1 // 间隙数量
-  if (gaps > 0) {
-    gapWidth.value = Math.floor(totalGapWidth / gaps)
+  if (isMobile.value) {
+    // 移动端固定两列布局
+    itemsPerRow.value = 2
+    gapWidth.value = 16 // 固定间距16px
+  } else {
+    // 桌面端保持原有的动态计算
+    const containerWidth = containerRef.value.clientWidth - 48
+    const cardWidth = 200
+    const minGap = 16
+    
+    const count = Math.floor((containerWidth + minGap) / (cardWidth + minGap))
+    itemsPerRow.value = Math.max(1, count)
+    
+    const totalGapWidth = containerWidth - (cardWidth * itemsPerRow.value)
+    const gaps = itemsPerRow.value - 1
+    if (gaps > 0) {
+      gapWidth.value = Math.floor(totalGapWidth / gaps)
+    }
   }
 }
 
@@ -330,6 +337,164 @@ const LazyImage = defineComponent({
   position: relative;
   z-index: 2;
   pointer-events: none;
+}
+
+/* 只针对卡片的移动端样式 */
+@media (max-width: 768px) {
+  /* 容器基础样式 */
+  .gallery-container {
+    padding: 0;
+  }
+
+  /* 导航头部样式 */
+  .gallery-container .nav-header {
+    padding: 0.12rem 0.16rem; /* 12px 16px */
+  }
+
+  /* 返回按钮行样式 */
+  .gallery-container .back-row {
+    margin-bottom: 0.12rem; /* 12px */
+    margin-left: -0.08rem; /* -8px */
+  }
+
+  .gallery-container .back-button {
+    gap: 0.04rem; /* 4px */
+    padding: 0.04rem 0.08rem; /* 4px 8px */
+  }
+
+  .gallery-container .back-button svg {
+    width: 0.2rem; /* 20px */
+    height: 0.2rem;
+  }
+
+  .gallery-container .back-text {
+    font-size: 0.16rem; /* 16px */
+    line-height: 0.32rem; /* 32px */
+  }
+
+  /* 标题行样式 */
+  .gallery-container .title-row {
+    gap: 0.00rem; /* 0px */
+  }
+
+  .gallery-container .left-section {
+    gap: 0.0rem; /* 0px */
+  }
+
+  .gallery-container .refresh-icon {
+    width: 0.24rem; /* 24px */
+    height: 0.24rem;
+  }
+
+  .gallery-container .avatar {
+    width: 0.24rem; /* 24px */
+    height: 0.24rem;
+    margin-left: 0.16rem; /* 16px */
+  }
+
+  .gallery-container .title-text {
+    font-size: 0.18rem; /* 18px */
+    line-height: 0.24rem; /* 24px */
+    margin-left: 0.08rem; /* 8px */
+  }
+
+  /* 图标按钮样式 */
+  .gallery-container .icon-button {
+    height: 0.24rem; /* 24px */
+  }
+
+  .gallery-container .icon-default {
+    width: 0.24rem; /* 24px */
+    height: 0.24rem;
+  }
+
+  .gallery-container .copy-button,
+  .gallery-container .me-button {
+    margin-left: 0.12rem; /* 12px */
+  }
+
+  /* Owned 过滤器样式 */
+  .gallery-container .owned-filter {
+    gap: 0.04rem; /* 4px */
+    padding: 0.04rem; /* 4px */
+    border-radius: 0.04rem; /* 4px */
+  }
+
+  .gallery-container .owned-icon {
+    width: 0.14rem; /* 14px */
+    height: 0.14rem;
+  }
+
+  .gallery-container .owned-text {
+    font-size: 0.14rem; /* 14px */
+    line-height: 0.16rem; /* 16px */
+    margin-left: 0.00rem; /* 0px */
+    margin-top: 0.02rem; /* 2px */
+  }
+
+  /* NFT 网格样式 */
+  .gallery-container .nft-grid-row {
+    padding: 0.16rem 0.16rem 0; /* 16px 16px 0 */
+  }
+
+  .gallery-container .nft-grid-row:last-child {
+    padding-bottom: 0.16rem; /* 16px */
+  }
+
+  /* 列表容器样式 */
+  .gallery-container .list-container {
+    height: calc(100vh - 1.4rem); /* 140px */
+  }
+
+  /* 滚动条样式 */
+  .gallery-container :deep(.n-scrollbar-rail.vertical) {
+    width: 0.06rem !important; /* 6px */
+  }
+
+  .gallery-container :deep(.n-scrollbar-rail__scrollbar) {
+    width: 0.06rem !important; /* 6px */
+    border-radius: 0.03rem !important; /* 3px */
+  }
+
+  /* NFT卡片样式（已经适配过的，保持不变） */
+  .gallery-container .nft-card {
+    width: 1.56rem;
+    height: 1.92rem;
+    border-width: 0.02rem;
+    box-shadow: 0.03rem 0.03rem 0 0 #FB59F5;
+  }
+
+  .gallery-container .nft-image-wrapper {
+    width: 1.56rem;
+    height: 1.56rem;
+  }
+
+  .gallery-container .nft-info {
+    padding: 0.08rem;
+    height: 0.36rem;
+  }
+
+  .gallery-container .nft-name {
+    font-size: 0.12rem;
+    line-height: 0.16rem;
+  }
+}
+
+/* 虚拟列表容器样式 */
+.list-container {
+  flex: 1;
+  height: calc(100vh - 1.4rem); /* 140px -> 1.4rem */
+  width: 100%;
+}
+
+/* 滚动条样式 */
+:deep(.n-scrollbar-rail.vertical) {
+  width: 0.06rem !important; /* 6px */
+}
+
+:deep(.n-scrollbar-rail__scrollbar) {
+  width: 0.06rem !important; /* 6px */
+  border-radius: 0.03rem !important; /* 3px */
 }
 
 .nav-header {
