@@ -262,4 +262,96 @@ const handleCollectionClick = (collection: Collection) => {
   justify-content: center;
   height: 24px;
 }
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  /* 容器基础样式 */
+  .featured-container {
+    padding: 0;
+  }
+
+  /* 导航头部样式 */
+  .featured-container .nav-header {
+    padding: 0.12rem 0.16rem; /* 12px 16px */
+  }
+
+  .featured-container .title-row {
+    gap: 0.08rem; /* 8px */
+  }
+
+  .featured-container .left-section {
+    gap: 0.12rem; /* 12px */
+  }
+
+  .featured-container .title-text {
+    font-size: 0.24rem; /* 24px */
+    line-height: 0.32rem; /* 32px */
+  }
+
+  .featured-container .refresh-icon {
+    width: 0.24rem; /* 24px */
+    height: 0.24rem;
+  }
+
+  /* 集合网格样式 */
+  .featured-container .collection-grid {
+    display: grid;
+    grid-template-columns: 1fr; /* 移动端单列显示 */
+    gap: 0.16rem; /* 16px */
+    margin: 0 0.16rem; /* 0 16px */
+    padding: 0.08rem 0; /* 8px 0 */
+  }
+
+  /* 集合卡片样式 */
+  .featured-container .collection-card {
+    width: 100%; /* 充满容器宽度 */
+    height: 4rem; /* 400px */
+    border-width: 0.02rem; /* 2px */
+    box-shadow: 0.03rem 0.03rem 0 0 #FB59F5;
+  }
+
+  .featured-container .collection-image-wrapper {
+    width: 100%;
+    height: 3.2rem; /* 320px */
+    border-bottom-width: 0.02rem; /* 2px */
+  }
+
+  /* Chain 标签样式 */
+  .featured-container .chain-badge {
+    height: 0.28rem; /* 28px */
+    padding: 0.02rem 0.1rem 0.02rem 0.02rem; /* 2px 10px 2px 2px */
+    gap: 0.04rem; /* 4px */
+  }
+
+  .featured-container .chain-icon {
+    width: 0.24rem; /* 24px */
+    height: 0.24rem; /* 24px */
+  }
+
+  .featured-container .chain-text {
+    font-size: 0.12rem; /* 12px */
+    line-height: 0.16rem; /* 16px */
+  }
+
+  /* 集合信息样式 */
+  .featured-container .collection-info {
+    padding: 0.12rem; /* 12px */
+    gap: 0.04rem; /* 4px */
+  }
+
+  .featured-container .collection-name {
+    font-size: 0.24rem; /* 24px */
+    line-height: 0.24rem; /* 24px */
+  }
+
+  .featured-container .collection-nfts {
+    font-size: 0.12rem; /* 12px */
+    line-height: 0.2rem; /* 20px */
+  }
+
+  /* 图标按钮样式 */
+  .featured-container .icon-button {
+    height: 0.24rem; /* 24px */
+  }
+}
 </style> 
