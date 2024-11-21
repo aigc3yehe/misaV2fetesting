@@ -3,7 +3,8 @@
     <header class="header">
       <div class="header-left">
         <n-icon size="32" class="logo-icon">
-          <LogoIcon />
+          <LogoIcon v-if="!isMobile" />
+          <MobileLogoIcon v-else />
         </n-icon>
         <h1 class="title">MISATO Studio</h1>
       </div>
@@ -155,6 +156,7 @@ import ChatPanel from '@/components/chat/ChatPanel.vue'
 import NFTGallery from '@/components/gallery/NFTGallery.vue'
 import LogoIcon from '@/assets/icons/logo.svg?component'
 import SmallBaseIcon from '@/assets/icons/small_base.svg?component'
+import MobileLogoIcon from '@/assets/icons/mobile_logo.svg?component'
 import { useWallet } from '@/composables/useWallet'
 import { useDialog } from 'naive-ui'
 import { useWalletStore } from '@/stores/wallet'
@@ -588,67 +590,97 @@ const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
 /* 移动端基础样式调整 */
 @media (max-width: 768px) {
   .header {
-    padding: 0 12px;
+    padding: 0 0.12rem; /* 12px */
+    height: 0.64rem; /* 64px */
   }
   
   .icon-group {
-    gap: 12px;
+    gap: 0.08rem; /* 8px */
   }
   
   .title {
-    font-size: 18px;
+    font-size: 0.18rem; /* 18px */
+    line-height: 0.24rem; /* 24px */
   }
   
   .social-icon {
-    width: 24px;
-    height: 24px;
+    width: 0.24rem; /* 24px */
+    height: 0.24rem; /* 24px */
   }
 
   .wallet-button {
-    height: 24px;
-    padding: 0px 3px;
-    padding-right: 6px;
-    gap: 3px;
+    height: 0.24rem; /* 24px */
+    padding: 0 0.03rem; /* 0 3px */
+    padding-right: 0.06rem; /* 6px */
+    gap: 0.03rem; /* 3px */
   }
 
   .wallet-button span {
-    font-size: 14px;
-    line-height: 20px;
+    font-size: 0.14rem; /* 14px */
+    line-height: 0.2rem; /* 20px */
   }
 
   .wallet-icon-wrapper {
-    width: 24px;
-    height: 24px;
+    width: 0.24rem; /* 24px */
+    height: 0.24rem; /* 24px */
   }
 
   .main-wallet-icon {
-    width: 24px;
-    height: 24px;
+    width: 0.24rem; /* 24px */
+    height: 0.24rem; /* 24px */
   }
 
   .status-icon {
-    width: 12px;
-    height: 12px;
-    bottom: -2px;
-    right: -2px;
+    width: 0.12rem; /* 12px */
+    height: 0.12rem; /* 12px */
+    bottom: -0.02rem; /* -2px */
+    right: -0.02rem; /* -2px */
+  }
+
+  /* Logo 图标样式 */
+  .logo-icon {
+    width: 0.24rem !important; /* 24px */
+    height: 0.24rem !important; /* 24px */
+  }
+
+  .logo-icon :deep(svg) {
+    width: 0.24rem;
+    height: 0.24rem;
+  }
+
+  .logo-icon:deep(.n-icon) {
+    width: 0.24rem !important;
+    height: 0.24rem !important;
+    font-size: 0.24rem !important;
+  }
+
+  /* 标题文字大小 */
+  .title {
+    font-size: 0.18rem; /* 18px */
+    line-height: 0.24rem; /* 24px */
+  }
+
+  /* 调整标题和图标的间距 */
+  .header-left {
+    gap: 0.08rem; /* 8px */
   }
 }
 
 .menu-toggle {
   display: none;
   cursor: pointer;
-  padding: 6px;
-  margin-left: -12px;
-  width: 36px;
-  height: 36px;
+  padding: 0.06rem; /* 6px */
+  margin-left: -0.12rem; /* -12px */
+  width: 0.36rem; /* 36px */
+  height: 0.36rem; /* 36px */
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .menu-toggle :deep(.n-icon) {
-  width: 24px !important;
-  height: 24px !important;
+  width: 0.24rem !important; /* 24px */
+  height: 0.24rem !important; /* 24px */
   display: flex;
   align-items: center;
   justify-content: center;
