@@ -34,13 +34,39 @@ import Home from './views/Home.vue'
   box-sizing: border-box;
 }
 
-html, body, #app {
+html {
   height: 100%;
   width: 100%;
   overflow: hidden;
+  position: fixed;
+  top: 0;
+  left: 0;
+}
+
+body {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
+  -webkit-overflow-scrolling: touch;
 }
 
 #app {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
   background-color: transparent;
+  position: relative;
+}
+
+/* 添加触摸设备的滚动优化 */
+@supports (-webkit-touch-callout: none) {
+  html, body {
+    height: -webkit-fill-available;
+  }
+  
+  .home {
+    min-height: -webkit-fill-available;
+  }
 }
 </style>

@@ -228,10 +228,14 @@ const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
 
 <style scoped>
 .home {
-  height: 100vh;
-  width: 100vw;
+  height: 100dvh;
+  width: 100%;
   display: flex;
   flex-direction: column;
+  position: fixed;
+  top: 0;
+  left: 0;
+  overflow: hidden;
 }
 
 .header {
@@ -269,23 +273,36 @@ const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
 
 :deep(.n-config-provider) {
   height: 100%;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 :deep(.n-split) {
   flex: 1;
   min-height: 0;
+  height: 100%;
 }
 
 :deep(.n-split-pane) {
   height: 100%;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
+}
+
+:deep(.n-split-pane) > * {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 :deep(.n-split-pane-1) {
@@ -924,22 +941,61 @@ const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
 }
 
 @media (max-width: 768px) {
+  .home {
+    /* 修改高度计算方式，使用动态视口高度 */
+    height: 100dvh;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+  }
+
   .mobile-layout {
-    height: calc(100vh - 64px);
+    /* 使用 calc 计算实际可用高度 */
+    height: calc(100dvh - 0.64rem);
     display: flex;
     flex-direction: column;
+    overflow: hidden;
   }
 
   .mobile-panels {
     flex: 1;
-    min-height: 0;
     display: flex;
     flex-direction: column;
+    min-height: 0;
+    /* 添加底部安全区域间距 */
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   .mobile-panel-content {
     flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     min-height: 0;
+    /* 确保内容可以滚动 */
+    position: relative;
+  }
+
+  .gallery-content {
+    min-height: 100%;
+    /* 移除之前的 padding-bottom */
+    height: 100%;
+    overflow-y: auto;
+  }
+
+  /* 修复聊天面板的高度问题 */
+  .mobile-panel-content:has(> .chat-panel) {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* 确保聊天面板内容可以正确滚动 */
+  .chat-panel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 }
 
