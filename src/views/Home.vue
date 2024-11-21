@@ -89,21 +89,32 @@
               <div class="mobile-panels">
                 <div 
                   v-show="mobileActivePanel !== 'gallery'"
-                  class="mobile-panel-header clickable"
+                  class="mobile-panel-header"
                   :class="{ 'featured': galleryStore.currentView === 'featured' }"
                   @click="toggleMobilePanel('gallery')"
                 >
-                  <div class="header-content">
-                    <n-icon size="20" class="panel-icon">
-                      <GalleryIcon />
-                    </n-icon>
-                    <span class="panel-title">{{ galleryStore.currentView === 'featured' ? 'Featured Collection' : 'NFT Gallery' }}</span>
+                  <div class="header-background">
+                    <div class="header-bg-pattern"></div>
+                    <div class="header-content">
+                      <div class="icon-title-group">
+                        <n-icon size="20" class="panel-icon">
+                          <GalleryIcon />
+                        </n-icon>
+                        <span class="panel-title">{{ galleryStore.currentView === 'featured' ? 'Featured Collection' : 'NFT Gallery' }}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 
                 <div class="mobile-panel-content" v-show="mobileActivePanel === 'gallery'">
-                  <FeaturedCollection v-if="galleryStore.currentView === 'featured'" />
-                  <NFTGallery v-else />
+                  <div class="gallery-background">
+                    <div class="bg-pattern"></div>
+                    <div class="bg-line"></div>
+                    <div class="gallery-content">
+                      <FeaturedCollection v-if="galleryStore.currentView === 'featured'" />
+                      <NFTGallery v-else />
+                    </div>
+                  </div>
                 </div>
 
                 <div 
@@ -112,13 +123,15 @@
                   @click="toggleMobilePanel('chat')"
                 >
                   <div class="header-content">
-                    <n-icon size="20" class="panel-icon">
-                      <UpIcon />
-                    </n-icon>
-                    <n-icon size="20" class="chat-icon">
-                      <ChatIcon />
-                    </n-icon>
-                    <span class="chat-title">MISATO</span>
+                    <div class="icon-title-group">
+                      <n-icon size="20" class="panel-icon">
+                        <UpIcon />
+                      </n-icon>
+                      <n-icon size="20" class="chat-icon">
+                        <ChatIcon />
+                      </n-icon>
+                      <span class="chat-title">MISATO</span>
+                    </div>
                   </div>
                 </div>
                 
@@ -712,23 +725,47 @@ const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
 
 .mobile-panel-header {
   height: 32px;
-  display: flex;
-  align-items: center;
-  padding: 0 16px;
   background: #EBD2EF;
-  border: 1px solid #2C0CB9;
   transition: all 0.3s ease;
   position: relative;
   overflow: hidden;
 }
 
+.header-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.header-bg-pattern {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 850px;
+  background-image: url('@/assets/icons/bg.svg');
+  background-position: top center;
+  background-size: 100% auto;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
 .header-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
   display: flex;
   align-items: center;
-  gap: 0px;
-  margin: 0 auto;
-  position: relative;
-  z-index: 1;
+  justify-content: center;
+  padding: 0 16px;
+}
+
+.icon-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .panel-icon {
@@ -739,11 +776,6 @@ const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
   justify-content: center;
 }
 
-.panel-icon :deep(svg) {
-  width: 20px;
-  height: 20px;
-}
-
 .panel-title {
   color: var(--Text-P, #2C0CB9);
   font-family: '04b03';
@@ -751,13 +783,66 @@ const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
   font-style: normal;
   font-weight: 400;
   line-height: 20px;
-  margin-left: 8px;
 }
 
 .mobile-panel-content {
   flex: 1;
-  overflow: hidden;
+  min-height: 0;
   position: relative;
+  overflow: hidden;
+  background: #FBF7F1;
+}
+
+.gallery-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.bg-pattern,
+.bg-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* 背景图案不影响交互 */
+  opacity: 0.5;
+}
+
+.bg-pattern {
+  background-image: url('@/assets/icons/bg.svg');
+  background-repeat: repeat;
+  background-position: top center;
+  background-size: contain;
+}
+
+.bg-line {
+  background-image: url('@/assets/bg_line.png');
+  background-repeat: no-repeat;
+  background-position: top center;
+  background-size: 100% 100%;
+}
+
+.gallery-content {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  width: 100%;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* 确保 FeaturedCollection 和 NFTGallery 组件能正确显示 */
+.gallery-content :deep(.featured-collection),
+.gallery-content :deep(.nft-gallery) {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  z-index: 2;
+  overflow-y: auto;
 }
 
 /* Gallery 背景样式 */
@@ -809,7 +894,20 @@ const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
 @media (max-width: 768px) {
   .mobile-layout {
     height: calc(100vh - 64px);
-    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-panels {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .mobile-panel-content {
+    flex: 1;
+    min-height: 0;
   }
 }
 
@@ -847,8 +945,7 @@ const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
 .chat-header .chat-icon {
   width: 20px;
   height: 20px;
-  margin-left: 8px;
-  margin-right: 7px;
+  margin-left: -1px;
 }
 
 .chat-header .chat-title {
