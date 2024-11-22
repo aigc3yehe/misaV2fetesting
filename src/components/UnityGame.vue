@@ -71,6 +71,9 @@ const UnityStartCallback = (instance: any) => {
 
 // 添加 Call 函数
 const Call = () => {
+  // 切换角色 vrm02 或 vrm01  
+  //window.unityInstance.SendMessage('RolleManager', 'SwitchRole', "vrm02");
+  // 添加语音
   window.unityInstance.SendMessage('JSCall', 'AddVoice', '{"content": "Escape reality with a conversation!","finish": false}')
   window.unityInstance.SendMessage('JSCall', 'AddVoice', '{"content": " I\'m Misato Katsuragi. How may I assist you?","finish": true}')
 }
@@ -98,18 +101,18 @@ onMounted(() => {
   const buildUrl = "/Build"
   const config = {
     arguments: [],
-    dataUrl: `${buildUrl}/eed58a25986153caf5f6a6727fe43216.data.br`,
-    frameworkUrl: `${buildUrl}/72c69d1ad07615e4ab8bc8a2a60e6360.framework.js.br`,
-    codeUrl: `${buildUrl}/ebd7a2ea70566abd3704720ecfeb4a0e.wasm.br`,
+    dataUrl: `${buildUrl}/7631b2dd1647e109e9d7d5d85755f62c.data.br`,
+    frameworkUrl: `${buildUrl}/949032bf0d627d4f98a91e29f4d9b015.framework.js.br`,
+    codeUrl: `${buildUrl}/34ff67de1cf5d0c93568e19a370a7975.wasm.br`,
     streamingAssetsUrl: "StreamingAssets",
-    companyName: "lkz",
-    productName: "数字人",
+    companyName: "yehe",
+    productName: "Misato",
     productVersion: "1.2",
     showBanner: unityShowBanner,
   }
 
   const script = document.createElement("script")
-  script.src = `${buildUrl}/142f057e0cfdd4168f57bf07013021a5.loader.js`
+  script.src = `${buildUrl}/f997d49c14851abac784b296cce53af5.loader.js`
   script.onload = () => {
     // @ts-ignore
     createUnityInstance(unityCanvas.value, config, (progress: number) => {

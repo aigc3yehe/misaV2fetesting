@@ -7,6 +7,23 @@
     
     <!-- 主聊天界面 -->
     <div class="chat-interface">
+      <!-- 角色切换开关 -->
+      <div class="role-switch-card">
+        <n-switch
+          class="role-switch"
+          :value="currentRole === 'vrm02'"
+          @update:value="handleRoleSwitch"
+          :rail-style="railStyle"
+        >
+          <template #checked>
+            Mature
+          </template>
+          <template #unchecked>
+            Kawaii
+          </template>
+        </n-switch>
+      </div>
+
       <!-- 钱包卡片 -->
       <div class="wallet-card">
         <div class="wallet-header">
@@ -94,18 +111,28 @@ import LogoIcon from '@/assets/icons/small_logo.svg?component'
 import UnityGame from '../UnityGame.vue'
 import ChatContent from './ChatContent.vue'
 import LoadingIcon from '@/assets/icons/loading.svg?component'
-import { useWallet } from '@/composables/useWallet'
 import ChatIcon from '@/assets/icons/chat_icon.svg'
 import SimpleModeIcon from '@/assets/icons/s.svg'
 import TurboModeIcon from '@/assets/icons/t.svg'
 import { useAppKit } from '@reown/appkit/vue'
+import type { CSSProperties } from 'vue'
 
 const isExpanded = ref(true)
 const walletStore = useWalletStore()
 const message = useMessage()
 const chatState = ref<'ready' | 'queuing' | 'not-connected'>('not-connected')
-const { handleConnect } = useWallet()
 const modal = useAppKit()
+
+// 添加角色状态
+const currentRole = ref('vrm01')
+
+// 添加切换角色方法
+const handleRoleSwitch = (checked: boolean) => {
+  currentRole.value = checked ? 'vrm02' : 'vrm01'
+  // @ts-ignore
+  window.unityInstance?.SendMessage('RolleManager', 'SwitchRole', currentRole.value)
+  message.success(`Switched to ${checked ? 'Mature' : 'Kawaii'} style`)
+}
 
 const toggleExpand = () => {
   isExpanded.value = !isExpanded.value
@@ -140,6 +167,28 @@ watch(() => walletStore.isConnected, (newValue) => {
   console.log('Wallet connection status changed:', newValue)
   chatState.value = newValue ? 'ready' : 'not-connected'
 }, { immediate: true })
+
+const railStyle = ({
+  focused,
+  checked
+}: {
+  focused: boolean
+  checked: boolean
+}) => {
+  const style: CSSProperties = {}
+  if (checked) {
+    style.background = '#FA75FF' // 使用项目的粉色主题
+    if (focused) {
+      style.boxShadow = '0 0 0 2px rgba(250, 117, 255, 0.3)'
+    }
+  } else {
+    style.background = '#C79DDC' // 使用项目的紫色主题
+    if (focused) {
+      style.boxShadow = '0 0 0 2px rgba(199, 157, 220, 0.3)'
+    }
+  }
+  return style
+}
 </script>
 
 <style scoped>
@@ -505,5 +554,44 @@ watch(() => walletStore.isConnected, (newValue) => {
   height: calc(100% - 40px); /* 40px 是标题栏的高度 */
   overflow: hidden;
   position: relative;
+}
+
+.clickable {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.clickable:hover {
+  opacity: 0.8;
+}
+
+.role-switch-card {
+  position: absolute;
+  top: 24px;
+  left: 8px;
+  display: flex;
+  padding: 8px;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.24);
+  backdrop-filter: blur(12px);
+}
+
+.role-switch {
+  pointer-events: auto;
+}
+
+.role-switch :deep(.n-switch__rail) {
+  background-color: #C79DDC;
+}
+
+.role-switch :deep(.n-switch__button) {
+  background-color: #FFFFFF;
+}
+
+.role-switch :deep(.n-switch__checked),
+.role-switch :deep(.n-switch__unchecked) {
+  color: #FFFFFF;
+  font-family: '04b03', monospace;
+  font-size: 12px;
 }
 </style> 
