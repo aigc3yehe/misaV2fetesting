@@ -162,8 +162,8 @@ onUnmounted(() => {
 #unity-loading-bar {
   position: absolute;
   left: 50%;
-  top: 18vh;
-  transform: translateX(-50%);
+  top: calc(50% - max(27vh, 231px));
+  transform: translate(-50%, -50%);
   width: 240px;
   height: 4px;
   background-color: rgba(255, 255, 255, 0.4);

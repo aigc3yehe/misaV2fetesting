@@ -1,19 +1,13 @@
-import { createConfig, http } from '@wagmi/core'
-import { mainnet } from '@wagmi/core/chains'
-import { injected } from '@wagmi/connectors'
+import { createConfig, http } from '@wagmi/vue'
+import { base } from '@wagmi/vue/chains'
+import { injected } from '@wagmi/vue/connectors'
 
 export const config = createConfig({
-  chains: [mainnet],
+  chains: [base],
   connectors: [
     injected(),
   ],
   transports: {
-    [mainnet.id]: http()
+    [base.id]: http()
   }
 })
-
-declare module '@wagmi/vue' {
-  interface Register {
-    config: typeof config
-  }
-} 

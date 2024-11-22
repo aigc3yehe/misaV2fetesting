@@ -98,12 +98,14 @@ import { useWallet } from '@/composables/useWallet'
 import ChatIcon from '@/assets/icons/chat_icon.svg'
 import SimpleModeIcon from '@/assets/icons/s.svg'
 import TurboModeIcon from '@/assets/icons/t.svg'
+import { useAppKit } from '@reown/appkit/vue'
 
 const isExpanded = ref(true)
 const walletStore = useWalletStore()
 const message = useMessage()
 const chatState = ref<'ready' | 'queuing' | 'not-connected'>('not-connected')
 const { handleConnect } = useWallet()
+const modal = useAppKit()
 
 const toggleExpand = () => {
   isExpanded.value = !isExpanded.value
@@ -125,10 +127,8 @@ const handleTryConnect = () => {
 
 const handleConnectWallet = async () => {
   try {
-    await handleConnect()
-    if (walletStore.isConnected) {
-      chatState.value = 'ready'
-    }
+    // 使用 AppKit modal 打开钱包连接
+    modal.open()
   } catch (error) {
     console.error('Failed to connect wallet:', error)
     message.error('Failed to connect wallet')
@@ -177,7 +177,7 @@ watch(() => walletStore.isConnected, (newValue) => {
   position: absolute;
   top: 24px;
   right: 8px;
-  width: 110px;
+  width: 120px;
   display: flex;
   padding: 8px;
   flex-direction: column;
@@ -224,9 +224,9 @@ watch(() => walletStore.isConnected, (newValue) => {
 }
 
 .wallet-content-text {
-  font-family: 'PPNeueBit', monospace;
-  font-size: 16px;
-  font-weight: 700;
+  font-family: '04b03', monospace;
+  font-size: 12px;
+  font-weight: 400;
   line-height: 20px;
   text-align: left;
   text-underline-position: from-font;
@@ -254,6 +254,7 @@ watch(() => walletStore.isConnected, (newValue) => {
   font-weight: 400;
   line-height: 20px;
   transition: opacity 0.2s;
+  border-radius: 0px;
 }
 
 .copy-button:hover {

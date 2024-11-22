@@ -1,7 +1,7 @@
 import { ref, h, watch, onMounted } from 'vue'
 import { useAccount, useConnect, useDisconnect, type Connector } from '@wagmi/vue'
 import { useWalletStore } from '@/stores'
-import { useMessage, useDialog, c } from 'naive-ui'
+import { useMessage, useDialog } from 'naive-ui'
 
 export function useWallet() {
   const { address, isConnected, connector } = useAccount()

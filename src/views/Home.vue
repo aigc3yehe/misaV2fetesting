@@ -168,6 +168,7 @@ import CloseIcon from '@/assets/icons/close.svg?component'
 import ChatIcon from '@/assets/icons/chat_icon.svg?component'
 import GalleryIcon from '@/assets/icons/down.svg?component'
 import UpIcon from '@/assets/icons/up.svg?component'
+import { useAppKit } from '@reown/appkit/vue'
 
 const theme = ref(darkTheme)
 const { isConnected, address, handleConnect, handleDisconnect, formatAddress } = useWallet()
@@ -187,7 +188,12 @@ watch(() => isConnected.value, (newValue) => {
   }
 }, { immediate: true })
 
+// 获取 AppKit modal 实例
+const modal = useAppKit()
+
+// 修改钱包点击处理方法
 const handleWalletClick = async () => {
+  // 使用 AppKit modal 打开钱包连接
   try {
     if (isConnected.value) {
       dialog.warning({
@@ -199,7 +205,6 @@ const handleWalletClick = async () => {
           color: '#FB59F5',
           textColor: '#FFFFFF'
         },
-        // 添加图标样式
         style: {
           '--n-icon-color': '#FB59F5'
         },
@@ -208,7 +213,8 @@ const handleWalletClick = async () => {
         }
       })
     } else {
-      await handleConnect()
+      // 使用 AppKit modal 打开钱包连接
+      modal.open()
     }
   } catch (error) {
     console.error('Wallet operation error:', error)

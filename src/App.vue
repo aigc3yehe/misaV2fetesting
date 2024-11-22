@@ -1,19 +1,16 @@
 <script setup lang="ts">
-import Chat from './components/Chat.vue'
-import UnityGame from './components/UnityGame.vue'
-import Home from './views/Home.vue'
+import { initWallet } from './config/wallet'
+
+// 初始化钱包
+initWallet()
 </script>
 
 <template>
-  <!-- <Home /> -->
   <n-dialog-provider> 
     <n-message-provider>
       <router-view></router-view>
     </n-message-provider>
   </n-dialog-provider>
-  <!-- <n-message-provider>
-    <Chat />
-  </n-message-provider> -->
 </template>
 
 <style>
