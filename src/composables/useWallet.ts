@@ -1,16 +1,19 @@
 import { ref, h, watch, onMounted } from 'vue'
-import { useAccount, useConnect, useDisconnect, type Connector } from '@wagmi/vue'
+import { useAccount, useConnect, useDisconnect } from '@wagmi/vue'
 import { useWalletStore } from '@/stores'
 import { useMessage, useDialog } from 'naive-ui'
+import { useAppKit, useAppKitAccount } from '@reown/appkit/vue'
 
 export function useWallet() {
   const { address, isConnected, connector } = useAccount()
-  const { connect, connectors } = useConnect()
+  const { connectors } = useConnect()
   const { disconnect } = useDisconnect()
   const walletStore = useWalletStore()
   const message = useMessage()
   const dialog = useDialog()
   const currentConnector = ref<any>(null)
+  const appKitAccount = useAppKitAccount()
+  const modal = useAppKit()
 
   onMounted(async () => {
     if (isConnected.value && connector.value) {
@@ -56,6 +59,15 @@ export function useWallet() {
       })
     }
   })
+
+  watch([
+    () => isConnected.value,
+    () => appKitAccount.value
+  ], ([wagmiConnected, appKitAccount]) => {
+    if (!wagmiConnected && appKitAccount.isConnected) {
+      modal.close()
+    }
+  }, { immediate: true })
 
   const checkWalletEnvironment = () => {
     if (typeof window === 'undefined' || !window.ethereum) {
@@ -137,40 +149,23 @@ export function useWallet() {
 
   const handleConnect = async () => {
     try {
-      checkWalletEnvironment()
-      
-      const availableConnectors = connectors.filter(c => 
-        c.id != null && c.id != undefined && c.name != null && c.name != undefined && c.icon != null && c.icon != undefined
-      )
-      
-      console.log('Filtered connectors:', availableConnectors)
-      
-      if (availableConnectors.length === 0) {
-        message.error('Please install a supported wallet (e.g. MetaMask, TokenPocket)')
-        return
-      }
-
-      let selectedConnector
-      if (availableConnectors.length === 1) {
-        selectedConnector = availableConnectors[0]
-      } else {
-        selectedConnector = await showWalletSelection(availableConnectors)
-        console.log('Selected connector:', selectedConnector)
-      }
-
-      if (!selectedConnector) return
-
-      currentConnector.value = selectedConnector
-      
-      connect({ 
-        connector: selectedConnector as Connector 
+      console.log('打开连接弹窗前状态:', {
+        wagmi: {
+          connected: isConnected.value,
+          address: address.value
+        },
+        appKit: {
+          connected: appKitAccount.value.isConnected,
+          address: appKitAccount.value.address,
+          status: appKitAccount.value.status
+        }
       })
       
+      modal.open({ view: 'Connect' })
+      
     } catch (error: any) {
-      currentConnector.value = null
       console.error('Wallet connection error:', error)
       message.error('Failed to connect wallet')
-      walletStore.disconnectWallet()
     }
   }
 
@@ -196,7 +191,6 @@ export function useWallet() {
     address,
     isConnected,
     currentConnector,
-    handleConnect,
     handleDisconnect,
     formatAddress
   }

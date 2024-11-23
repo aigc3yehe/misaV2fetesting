@@ -11,8 +11,9 @@ const props = defineProps<{
 }>()
 
 const renderedContent = computed(() => {
-  return marked.parse(props.content, {
-    breaks: false,
+  const cleanContent = props.content.trim().replace(/\s+/g, ' ')
+  return marked.parse(cleanContent, {
+    breaks: true,
     gfm: true
   })
 })
@@ -40,6 +41,10 @@ const emit = defineEmits<{
 .markdown-body {
   font-size: 14px;
   line-height: 1.6;
+  max-width: 100%;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 .markdown-body img {

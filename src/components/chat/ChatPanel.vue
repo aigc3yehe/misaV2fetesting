@@ -59,7 +59,7 @@
         <template v-if="isExpanded">
           <n-message-provider>
             <div class="chat-content-container">
-              <ChatContent v-if="chatState === 'ready'" />
+              <ChatContent v-if="chatStore.connectionState === 'ready'" />
               <div v-else class="chat-state-wrapper">
                 <div class="chat-state-container">
                   <!-- 顶部蓝条 -->
@@ -67,13 +67,13 @@
                   <!-- 内容区域 -->
                   <div class="content-area">
                     <!-- 排队中状态 -->
-                    <template v-if="chatState === 'queuing'">
+                    <template v-if="chatStore.connectionState === 'queuing'">
                       <n-icon size="32" class="loading-icon">
                         <LoadingIcon />
                       </n-icon>
                       <div class="state-message">
                         There are too many people at the moment, please wait<br/>
-                        15 people are waiting...
+                        {{ chatStore.queuePosition }} people are waiting...
                       </div>
                       <n-button class="try-connect-btn" @click="handleTryConnect">
                         Try to connect
@@ -81,7 +81,7 @@
                     </template>
                     
                     <!-- 未连接状态 -->
-                    <template v-if="chatState === 'not-connected'">
+                    <template v-if="chatStore.connectionState === 'not-connected'">
                       <n-icon size="32" class="loading-icon">
                         <LoadingIcon />
                       </n-icon>
@@ -116,11 +116,12 @@ import SimpleModeIcon from '@/assets/icons/s.svg'
 import TurboModeIcon from '@/assets/icons/t.svg'
 import { useAppKit } from '@reown/appkit/vue'
 import type { CSSProperties } from 'vue'
+import { useChatStore } from '@/stores'
 
 const isExpanded = ref(true)
 const walletStore = useWalletStore()
 const message = useMessage()
-const chatState = ref<'ready' | 'queuing' | 'not-connected'>('not-connected')
+const chatStore = useChatStore()
 const modal = useAppKit()
 
 // 添加角色状态
@@ -148,25 +149,24 @@ const copyMisatoWalletAddress = async () => {
   }
 }
 
-const handleTryConnect = () => {
-  // 处理重新连接逻辑
+const handleTryConnect = async () => {
+  await chatStore.checkConnectionStatus()
 }
 
 const handleConnectWallet = async () => {
   try {
-    // 使用 AppKit modal 打开钱包连接
-    modal.open()
+    modal.open({ view: 'Connect' })
   } catch (error) {
     console.error('Failed to connect wallet:', error)
     message.error('Failed to connect wallet')
   }
 }
 
-// 监听钱包状态变化
-watch(() => walletStore.isConnected, (newValue) => {
-  console.log('Wallet connection status changed:', newValue)
-  chatState.value = newValue ? 'ready' : 'not-connected'
-}, { immediate: true })
+watch(() => walletStore.isConnected, async (newValue) => {
+  if (newValue) {
+    await chatStore.checkConnectionStatus()
+  }
+})
 
 const railStyle = ({
   focused,

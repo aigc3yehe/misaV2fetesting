@@ -171,7 +171,7 @@ import UpIcon from '@/assets/icons/up.svg?component'
 import { useAppKit } from '@reown/appkit/vue'
 
 const theme = ref(darkTheme)
-const { isConnected, address, handleConnect, handleDisconnect, formatAddress } = useWallet()
+const { isConnected, address, handleDisconnect, formatAddress } = useWallet()
 const dialog = useDialog()
 const walletStore = useWalletStore()
 const galleryStore = useGalleryStore()
@@ -214,7 +214,7 @@ const handleWalletClick = async () => {
       })
     } else {
       // 使用 AppKit modal 打开钱包连接
-      modal.open()
+      modal.open({ view: 'Connect' })
     }
   } catch (error) {
     console.error('Wallet operation error:', error)

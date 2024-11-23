@@ -367,6 +367,8 @@ const checkPayment = () => {
   gap: 2px;
   word-break: break-word;
   border-radius: 0;
+  max-width: 100%;
+  white-space: normal;
 }
 
 .message.assistant .message-bubble {
@@ -455,7 +457,10 @@ const checkPayment = () => {
   font-size: 12px;
   font-style: normal;
   font-weight: 400;
-  line-height: 12px; /* 100% */
+  line-height: 12px;
+  white-space: pre-line;
+  word-break: break-word;
+  max-width: 100%;
 }
 
 .message-time {

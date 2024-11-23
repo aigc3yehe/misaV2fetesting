@@ -77,6 +77,8 @@ export const useChatStore = defineStore('chat', () => {
         body: JSON.stringify({
           message: messageText,
           conversation_history,
+          user_uuid: walletStore.userUuid,
+          address: walletStore.userWalletAddress,
           request_id: currentRequestId.value
         })
       })
@@ -84,13 +86,10 @@ export const useChatStore = defineStore('chat', () => {
       const result = await response.json()
       
       if (result.status === 'full') {
-        await addMessage({
-          id: Date.now() + 1,
-          type: 'error',
-          role: 'system',
-          content: result.content,
-          time: formatTime(new Date())
-        })
+        connectionState.value = 'queuing'
+        if (result.position) {
+          queuePosition.value = result.position
+        }
         processingState.value = 'idle'
         return
       }
@@ -220,10 +219,51 @@ export const useChatStore = defineStore('chat', () => {
     messages.value = [initialMessage]
   }
 
+  // 添加排队相关状态
+  const queuePosition = ref(0)
+  const connectionState = ref<'not-connected' | 'queuing' | 'ready'>('not-connected')
+
+  // 检查连接状态的方法
+  const checkConnectionStatus = async () => {
+    try {
+      const response = await fetch(`/api/initial-connection/${walletStore.userUuid}`)
+      const data = await response.json()
+      
+      if (data.status === 'yes') {
+        // 从排队状态切换回来
+        if (connectionState.value === 'queuing') {
+          // 获取最后一条消息
+          const lastMessage = messages.value[messages.value.length - 1]
+          
+          // 如果最后一条是用户消息，则重新发送
+          if (lastMessage && lastMessage.role === 'user') {
+            removeMessage(lastMessage.id)
+            await sendMessage(lastMessage.content)
+          }
+        }
+        
+        connectionState.value = 'ready'
+      } else if (data.status === 'full') {
+        connectionState.value = 'queuing'
+        queuePosition.value = data.position
+      }
+    } catch (err) {
+      console.error('Failed to check connection status:', err)
+      connectionState.value = 'not-connected'
+    }
+  }
+
   // 监听钱包连接状态
-  watch(() => walletStore.isConnected, (newValue) => {
-    resetMessages()
-  })
+  watch(() => walletStore.isConnected, async (newValue) => {
+    if (newValue) {
+      // 钱包连接后开始检查连接状态
+      console.log('钱包连接后开始检查连接状态isConnected', walletStore.isConnected)
+      await checkConnectionStatus()
+    } else {
+      connectionState.value = 'not-connected'
+      resetMessages()
+    }
+  }, { immediate: true })
 
   return {
     messages,
@@ -235,6 +275,9 @@ export const useChatStore = defineStore('chat', () => {
     sendMessage,
     pollImageStatus,
     retryMessage,
-    resetMessages  // 导出重置方法以便需要时手动调用
+    resetMessages,  // 导出重置方法以便需要时手动调用
+    connectionState,
+    queuePosition,
+    checkConnectionStatus
   }
 }) 

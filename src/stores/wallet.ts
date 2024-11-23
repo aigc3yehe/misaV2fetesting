@@ -13,7 +13,32 @@ export const useWalletStore = defineStore('wallet', () => {
     icon: string;
   } | null>(null)
 
-  // Actions
+  // 初始化函数
+  const initialize = () => {
+    // 从 localStorage 恢复钱包信息
+    const storedWalletInfo = localStorage.getItem('misato_wallet_info')
+    if (storedWalletInfo) {
+      try {
+        walletInfo.value = JSON.parse(storedWalletInfo)
+      } catch (e) {
+        console.error('Failed to parse stored wallet info')
+      }
+    }
+
+    // 初始化或获取 UUID
+    const UUID_STORAGE_KEY = 'misato_user_uuid'
+    const storedUuid = localStorage.getItem(UUID_STORAGE_KEY)
+    
+    if (storedUuid) {
+      userUuid.value = storedUuid
+    } else {
+      const newUuid = crypto.randomUUID()
+      localStorage.setItem(UUID_STORAGE_KEY, newUuid)
+      userUuid.value = newUuid
+    }
+  }
+
+  // 其他方法
   const setUserWalletAddress = (address: string) => {
     userWalletAddress.value = address
   }
@@ -29,40 +54,13 @@ export const useWalletStore = defineStore('wallet', () => {
     localStorage.removeItem('misato_wallet_info')
   }
 
-  const getOrCreateUuid = () => {
-    const UUID_STORAGE_KEY = 'misato_user_uuid'
-    const storedUuid = localStorage.getItem(UUID_STORAGE_KEY)
-    
-    if (storedUuid) {
-      userUuid.value = storedUuid
-      return storedUuid
-    }
-    
-    const newUuid = crypto.randomUUID()
-    localStorage.setItem(UUID_STORAGE_KEY, newUuid)
-    userUuid.value = newUuid
-    return newUuid
-  }
-
   const setWalletInfo = (info: { name: string; icon: string }) => {
     walletInfo.value = info
     localStorage.setItem('misato_wallet_info', JSON.stringify(info))
   }
 
-  // 从 localStorage 恢复状态
-  const initializeFromStorage = () => {
-    const storedWalletInfo = localStorage.getItem('misato_wallet_info')
-    if (storedWalletInfo) {
-      try {
-        walletInfo.value = JSON.parse(storedWalletInfo)
-      } catch (e) {
-        console.error('Failed to parse stored wallet info')
-      }
-    }
-  }
-
-  // 初始化时调用
-  initializeFromStorage()
+  // 初始化
+  initialize()
 
   return {
     misatoWalletAddress, // MISATO 的钱包地址
@@ -74,8 +72,6 @@ export const useWalletStore = defineStore('wallet', () => {
     setUserWalletAddress,
     setConnected,
     disconnectWallet,
-    getOrCreateUuid,
-    setWalletInfo,
-    initializeFromStorage
+    setWalletInfo
   }
 }) 
