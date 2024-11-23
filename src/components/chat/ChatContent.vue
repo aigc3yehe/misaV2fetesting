@@ -41,15 +41,27 @@
               </template>
               <template v-if="message.show_status === 'send_eth'">
                 <div class="eth-buttons">
-                  <n-button class="eth-button" @click="handleSendEth" icon-placement="right">
-                    Send ETH
+                  <n-button 
+                    class="eth-button" 
+                    @click="handleSendEth" 
+                    :disabled="isPending || isConfirming"
+                    icon-placement="right"
+                  >
+                    {{ ethButtonText }}
                     <template #icon>
                       <n-icon><ETHIcon /></n-icon>
                     </template>
                   </n-button>
-                  <n-button class="eth-button" @click="checkPayment">
+                  <n-button 
+                    class="eth-button" 
+                    @click="checkPayment"
+                    :disabled="!hash"
+                  >
                     Check Payment
                   </n-button>
+                </div>
+                <div v-if="error" class="error-message">
+                  Error: {{ error?.message }}
                 </div>
               </template>
             </div>
@@ -97,17 +109,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, nextTick, watch, h } from 'vue'
+import { ref, computed, nextTick, watch, h, onUnmounted } from 'vue'
 import { useMessage, useDialog } from 'naive-ui'
 import type { ScrollbarInst } from 'naive-ui'
-import { v4 as uuidv4 } from 'uuid'
 import { useChatStore } from '@/stores'
 import MDRenderer from '@/components/shared/MDRenderer.vue'
 import SendIcon from '@/assets/icons/send.svg?component'
 import SendIconHover from '@/assets/icons/send-hover.svg?component'
 import ETHIcon from '@/assets/icons/ETH.svg?component'
 import SmallRefreshIcon from '@/assets/icons/small-refresh.svg?component'
-import { useSendTransaction, useWaitForTransactionReceipt } from '@wagmi/vue'
+import { useSendTransaction, useWaitForTransactionReceipt, useChainId } from '@wagmi/vue'
 import { parseEther } from 'viem'
 import { useWalletStore } from '@/stores'
 
@@ -129,6 +140,27 @@ const {
 const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
   hash,
 })
+
+const chainId = useChainId()
+
+// 添加一个变量来跟踪当前正在处理的交易
+const currentPaymentMessage = ref<any>(null)
+
+// 使用 watch 监听交易状态
+watch(
+  [() => isConfirmed, () => hash.value],
+  ([newIsConfirmed, newHash]) => {
+    if (newIsConfirmed && newHash && currentPaymentMessage.value) {
+      message.success('Payment confirmed!')
+      // 发送包含 hash 的消息
+      chatStore.sendMessage('payed', {
+        pay_fee_hash: newHash
+      })
+      // 清除当前交易消息
+      currentPaymentMessage.value = null
+    }
+  }
+)
 
 // 添加对消息列表的监听
 watch(
@@ -264,12 +296,33 @@ const sendEth = async () => {
       return
     }
 
-    const to = walletStore.misatoWalletAddress // MISATO的钱包地址作为接收方
-    const value = '0.05' // ETH数量
+    // 获取当前消息的支付信息并进行类型检查
+    const currentMessage = chatStore.messages.find(m => m.show_status === 'send_eth')
+    const paymentInfo = currentMessage?.payment_info
+
+    if (!paymentInfo || 
+        !paymentInfo.recipient_address || 
+        !paymentInfo.price || 
+        !paymentInfo.chainId) {
+      message.error('Payment information is incomplete')
+      return
+    }
+
+    // 保存当前正在处理的交易消息
+    currentPaymentMessage.value = currentMessage
+
+    const { recipient_address, price, chainId: requiredChainId } = paymentInfo
     
-    await sendTransaction({ 
-      to: to as `0x${string}`, 
-      value: parseEther(value) 
+    // 检查网络是否正确
+    if (chainId.value !== requiredChainId) {
+      message.error(`Please switch to ${paymentInfo.network} network`)
+      return
+    }
+
+    // 发送交易
+    sendTransaction({ 
+      to: recipient_address as `0x${string}`, 
+      value: parseEther(price)
     })
 
     if (error?.value) {
@@ -279,18 +332,32 @@ const sendEth = async () => {
 
     message.success('Transaction sent!')
   } catch (err: any) {
+    currentPaymentMessage.value = null // 清除当前交易消息
     console.error('Send ETH error:', err)
     message.error(err.message || 'Failed to send ETH')
   }
 }
 
 const handleSendEth = () => {
+  const currentMessage = chatStore.messages.find(m => m.show_status === 'send_eth')
+  const paymentInfo = currentMessage?.payment_info
+
+  if (!paymentInfo || 
+      !paymentInfo.recipient_address || 
+      !paymentInfo.price || 
+      !paymentInfo.network) {
+    message.error('Payment information is incomplete')
+    return
+  }
+
   dialog.warning({
     title: 'Send ETH',
     content: () => h('div', null, [
-      h('p', null, `Are you sure you want to send 0.05 ETH to MISATO?`),
+      h('p', null, `Are you sure to send ${paymentInfo.price} ETH?`),
       h('p', { style: 'margin-top: 8px; font-size: 12px; color: #999;' }, 
-        `Recipient: ${walletStore.misatoWalletAddress}`)
+        `Recipient: ${paymentInfo.recipient_address}`),
+      h('p', { style: 'margin-top: 4px; font-size: 12px; color: #999;' }, 
+        `Network: ${paymentInfo.network}`)
     ]),
     positiveText: 'Confirm',
     negativeText: 'Cancel',
@@ -298,14 +365,62 @@ const handleSendEth = () => {
   })
 }
 
-const checkPayment = () => {
-  if (hash) {
-    window.open(`https://etherscan.io/tx/${hash}`, '_blank')
-  } else {
+// 检查支付状态的按钮仍然保留，以便用户手动检查
+const checkPayment = async () => {
+  if (!hash.value) {
     message.warning('No transaction found')
+    return
+  }
+
+  if (isConfirming) {
+    message.info('Checking payment status...')
+    return
+  }
+
+  if (error?.value) {
+    message.error('Transaction failed')
+    return
+  }
+
+  if (isConfirmed) {
+    dialog.info({
+      title: 'Transaction Confirmed',
+      content: () => h('div', null, [
+        h('p', null, 'Your transaction has been confirmed!'),
+        h('p', { style: 'margin-top: 12px; word-break: break-all;' }, [
+          'Transaction Hash: ',
+          h('span', { style: 'color: #2C0CB9; font-family: monospace;' }, hash.value)
+        ]),
+        h('p', { 
+          style: 'margin-top: 12px; font-size: 14px; color: #666;' 
+        }, 'You can copy this hash and paste it to the chat with the word "payed" if the AI hasn\'t detected your payment automatically.')
+      ]),
+      positiveText: 'Copy Hash',
+      negativeText: 'Close',
+      onPositiveClick: async () => {
+        try {
+          await navigator.clipboard.writeText(hash.value!)
+          message.success('Hash copied to clipboard')
+        } catch (err) {
+          message.error('Failed to copy hash')
+        }
+      }
+    })
   }
 }
 
+// 更新按钮状态的显示
+const ethButtonText = computed(() => {
+  if (isPending) return 'Sending...'
+  if (isConfirming) return 'Confirming...'
+  if (isConfirmed) return 'Confirmed!'
+  return 'Send ETH'
+})
+
+// 清理函数
+onUnmounted(() => {
+  currentPaymentMessage.value = null
+})
 
 </script>
 

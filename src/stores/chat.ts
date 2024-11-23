@@ -9,6 +9,23 @@ interface ChatMessage {
   type: 'text' | 'image' | 'error'
   time?: string
   show_status?: 'send_eth'
+  payment_info?: {
+    recipient_address: string
+    price: string
+    network: string
+    chainId: number
+  }
+}
+
+// 首先添加新的接口定义
+interface PaymentResponse {
+  status: string
+  content: string
+  conversation: any
+  recipient_address: string
+  price: string
+  network: string
+  chainId: number
 }
 
 export const useChatStore = defineStore('chat', () => {
@@ -50,7 +67,7 @@ export const useChatStore = defineStore('chat', () => {
   const currentRequestId = ref<string | null>(null)
   const processingState = ref<'idle' | 'thinking' | 'generating' | 'minting'>('idle')
 
-  const sendMessage = async (messageText: string) => {
+  const sendMessage = async (messageText: string, options?: { pay_fee_hash?: string }) => {
     if (!messageText.trim() || processingState.value !== 'idle') return
     
     processingState.value = 'thinking'
@@ -78,12 +95,34 @@ export const useChatStore = defineStore('chat', () => {
           message: messageText,
           conversation_history,
           user_uuid: walletStore.userUuid,
-          address: walletStore.userWalletAddress,
-          request_id: currentRequestId.value
+          wallet_address: walletStore.userWalletAddress,
+          request_id: currentRequestId.value,
+          pay_fee_hash: options?.pay_fee_hash // 添加支付哈希
         })
       })
 
       const result = await response.json()
+      
+      // 处理支付相关的响应
+      if (result.status === 'paying' && result.recipient_address && result.price) {
+        await addMessage({
+          id: Date.now() + 1,
+          type: 'text',
+          role: 'assistant',
+          content: result.content,
+          time: formatTime(new Date()),
+          show_status: 'send_eth',
+          // 添加支付相关信息
+          payment_info: {
+            recipient_address: result.recipient_address,
+            price: result.price,
+            network: result.network,
+            chainId: result.chainId
+          }
+        })
+        processingState.value = 'idle'
+        return
+      }
       
       if (result.status === 'full') {
         connectionState.value = 'queuing'
