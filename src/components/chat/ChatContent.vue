@@ -55,13 +55,10 @@
                   <n-button 
                     class="eth-button" 
                     @click="checkPayment"
-                    :disabled="!hash"
+                    :disabled="!hash && !error"
                   >
                     Check Payment
                   </n-button>
-                </div>
-                <div v-if="error" class="error-message">
-                  Error: {{ error?.message }}
                 </div>
               </template>
             </div>
@@ -145,6 +142,30 @@ const chainId = useChainId()
 
 // 添加一个变量来跟踪当前正在处理的交易
 const currentPaymentMessage = ref<any>(null)
+
+// 添加一个状态来跟踪交易是否失败
+const isTransactionFailed = ref(false)
+
+// 监听错误状态
+watch(error, (newError) => {
+  if (newError) {
+    // 设置交易失败状态
+    isTransactionFailed.value = true
+    // 显示错误弹窗
+    dialog.error({
+      title: 'Transaction Failed',
+      content: () => h('div', null, [
+        h('p', null, 'Failed to send transaction:'),
+        h('p', { 
+          style: 'margin-top: 8px; color: #666; word-break: break-all;' 
+        }, newError.message)
+      ]),
+      positiveText: 'OK'
+    })
+    // 清除当前交易状态
+    currentPaymentMessage.value = null
+  }
+})
 
 // 使用 watch 监听交易状态
 watch(
@@ -289,6 +310,11 @@ const closeImagePreview = () => {
   previewImageUrl.value = ''
 }
 
+// 监听 hash
+watch(hash, (newHash) => {
+  console.log('Transaction hash changed:', newHash)
+})
+
 const sendEth = async () => {
   try {
     if (!walletStore.isConnected) {
@@ -325,6 +351,8 @@ const sendEth = async () => {
       value: parseEther(price)
     })
 
+    console.log('Transaction hash changed:', hash.value)
+
     if (error?.value) {
       message.error(`Transaction failed: ${error.value?.message}`)
       return
@@ -332,13 +360,14 @@ const sendEth = async () => {
 
     message.success('Transaction sent!')
   } catch (err: any) {
-    currentPaymentMessage.value = null // 清除当前交易消息
     console.error('Send ETH error:', err)
+    currentPaymentMessage.value = null
     message.error(err.message || 'Failed to send ETH')
   }
 }
 
 const handleSendEth = () => {
+  isTransactionFailed.value = false // 重置失败状态
   const currentMessage = chatStore.messages.find(m => m.show_status === 'send_eth')
   const paymentInfo = currentMessage?.payment_info
 
@@ -411,6 +440,7 @@ const checkPayment = async () => {
 
 // 更新按钮状态的显示
 const ethButtonText = computed(() => {
+  if (isTransactionFailed.value) return 'Send ETH' // 交易失败时显示初始状态
   if (isPending) return 'Sending...'
   if (isConfirming) return 'Confirming...'
   if (isConfirmed) return 'Confirmed!'
@@ -420,6 +450,7 @@ const ethButtonText = computed(() => {
 // 清理函数
 onUnmounted(() => {
   currentPaymentMessage.value = null
+  isTransactionFailed.value = false
 })
 
 </script>

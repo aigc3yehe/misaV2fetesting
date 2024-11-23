@@ -30,24 +30,42 @@ interface PaymentResponse {
 
 export const useChatStore = defineStore('chat', () => {
   const walletStore = useWalletStore()
-  
-  // 初始欢迎消息
-  const initialMessage = {
-    id: 1,
-    type: 'text' as const,
-    content: '\\### MISATO just opened her own studio! You can ask her about NFT purchases. Minting fee 0.002eth, total supply 500',
-    role: 'system' as const,
-    time: undefined,
-    show_status: undefined
-  }
-
-  const messages = ref<ChatMessage[]>([initialMessage])
 
   const formatTime = (date: Date) => {
     const hours = date.getHours().toString().padStart(2, '0')
     const minutes = date.getMinutes().toString().padStart(2, '0')
     return `${hours}:${minutes}`
   }
+  
+  // 初始欢迎消息
+  const initialMessages = [
+    {
+      id: 1,
+      type: 'text' as const,
+      content: '\\### MISATO just opened her own studio! You can ask her about NFT purchases. Minting fee 0.002eth, total supply 500',
+      role: 'system' as const,
+      time: undefined,
+      show_status: undefined
+    }/* ,
+    {
+      id: 2,
+      type: 'text' as const,
+      role: 'assistant' as const,
+      content: "When you complete the payment, please say 'payed' to me, and I will help you verify.\nPlease note:\n1. On-chain confirmation takes some time, please wait a moment after payment before notifying me.\n2. If I don't detect the successful payment hash, you can manually copy and paste it to me.",
+      time: formatTime(new Date()),
+      show_status: 'send_eth' as const,
+      payment_info: {
+        recipient_address: "0x900709432a8F2C7E65f90aA7CD35D0afe4eB7169",
+        price: "0.002",
+        network: "Base",
+        chainId: 8453
+      }
+    } */
+  ]
+
+  const messages = ref<ChatMessage[]>(initialMessages)
+
+  
 
   const addMessage = async (message: ChatMessage) => {
     messages.value.push({
@@ -253,9 +271,9 @@ export const useChatStore = defineStore('chat', () => {
     checkStatus()
   }
 
-  // 添加重置消息的方法
+  // 修改重置消息的方法
   const resetMessages = () => {
-    messages.value = [initialMessage]
+    messages.value = [...initialMessages]
   }
 
   // 添加排队相关状态
