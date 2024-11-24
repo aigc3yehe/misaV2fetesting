@@ -56,9 +56,9 @@ export const useChatStore = defineStore('chat', () => {
       show_status: 'send_eth' as const,
       payment_info: {
         recipient_address: "0x900709432a8F2C7E65f90aA7CD35D0afe4eB7169",
-        price: "0.002",
-        network: "Base",
-        chainId: 8453
+        price: "0.001",
+        network: "Base Sepolia",
+        chainId: 84532
       }
     } */
   ]
@@ -122,20 +122,29 @@ export const useChatStore = defineStore('chat', () => {
       const result = await response.json()
       
       // 处理支付相关的响应
-      if (result.status === 'paying' && result.recipient_address && result.price) {
+      if ((result.status === 'paying' || result.status?.status === 'paying') && 
+          (result.recipient_address || result.status?.recipient_address) && 
+          (result.price || result.status?.price)) {
+        
+        // 获取正确的值
+        const recipientAddress = result.recipient_address || result.status?.recipient_address
+        const price = result.price || result.status?.price
+        const network = result.network || result.status?.network
+        const chainId = result.chainId || result.status?.chainId
+        const content = result.content || result.status?.content
+        
         await addMessage({
           id: Date.now() + 1,
           type: 'text',
           role: 'assistant',
-          content: result.content,
+          content: content,
           time: formatTime(new Date()),
           show_status: 'send_eth',
-          // 添加支付相关信息
           payment_info: {
-            recipient_address: result.recipient_address,
-            price: result.price,
-            network: result.network,
-            chainId: result.chainId
+            recipient_address: recipientAddress,
+            price: price,
+            network: network,
+            chainId: chainId
           }
         })
         processingState.value = 'idle'
@@ -229,25 +238,58 @@ export const useChatStore = defineStore('chat', () => {
         if (result.status === 'completed') {
           removeMessage(progressMessageId)
           
+          // 添加消息并发送到 Unity
+          const content = result.content
           await addMessage({
             id: Date.now() + 1,
             type: 'text',
             role: 'assistant',
-            content: result.content,
+            content: content,
             time: formatTime(new Date())
+          })
+
+          // 过滤掉图片标记后发送到 Unity
+          const cleanContent = content.replace(/!\[.*?\]\(.*?\)/g, '')
+          const sentences = cleanContent.split(/[.,!?。！？]/g).filter(Boolean)
+          const lastIndex = sentences.length - 1
+
+          sentences.forEach((sentence: string, index: number) => {
+            const cleanSentence = sentence.trim()
+            if (cleanSentence) {
+              window.unityInstance?.SendMessage(
+                'JSCall', 
+                'AddVoice', 
+                JSON.stringify({
+                  content: cleanSentence,
+                  finish: index === lastIndex
+                })
+              )
+            }
           })
           
           processingState.value = 'idle'
           
         } else if (result.status === 'failed') {
           removeMessage(progressMessageId)
-          await addMessage({
+          const errorMessage = {
             id: Date.now() + 1,
-            type: 'error',
-            role: 'system',
+            type: 'error' as const,
+            role: 'system' as const,
             content: 'Image generation failed, please try again.',
             time: formatTime(new Date())
-          })
+          }
+          await addMessage(errorMessage)
+
+          // 发送错误消息到 Unity
+          window.unityInstance?.SendMessage(
+            'JSCall',
+            'AddVoice',
+            JSON.stringify({
+              content: errorMessage.content,
+              finish: true
+            })
+          )
+
           processingState.value = 'idle'
           currentRequestId.value = null
         } else {
@@ -256,13 +298,25 @@ export const useChatStore = defineStore('chat', () => {
       } catch (error) {
         console.error('Error polling status:', error)
         removeMessage(progressMessageId)
-        await addMessage({
+        const errorMessage = {
           id: Date.now() + 1,
-          type: 'error',
-          role: 'system',
+          type: 'error' as const,
+          role: 'system' as const,
           content: 'Error checking image generation status',
           time: formatTime(new Date())
-        })
+        }
+        await addMessage(errorMessage)
+
+        // 发送错误消息到 Unity
+        window.unityInstance?.SendMessage(
+          'JSCall',
+          'AddVoice',
+          JSON.stringify({
+            content: errorMessage.content,
+            finish: true
+          })
+        )
+
         processingState.value = 'idle'
         currentRequestId.value = null
       }

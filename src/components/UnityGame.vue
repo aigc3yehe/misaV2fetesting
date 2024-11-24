@@ -74,8 +74,7 @@ const Call = () => {
   // 切换角色 vrm02 或 vrm01  
   //window.unityInstance.SendMessage('RolleManager', 'SwitchRole', "vrm02");
   // 添加语音
-  window.unityInstance.SendMessage('JSCall', 'AddVoice', '{"content": "Escape reality with a conversation!","finish": false}')
-  window.unityInstance.SendMessage('JSCall', 'AddVoice', '{"content": " I\'m Misato Katsuragi. How may I assist you?","finish": true}')
+  window.unityInstance.SendMessage('JSCall', 'AddVoice', '{"content": "Hi, welcome back to MISATO Studio!","finish": true}')
 }
 
 onMounted(() => {

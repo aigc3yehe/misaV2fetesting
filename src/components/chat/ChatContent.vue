@@ -169,8 +169,14 @@ watch(error, (newError) => {
 
 // 使用 watch 监听交易状态
 watch(
-  [() => isConfirmed, () => hash.value],
+  [() => isConfirmed.value, () => hash.value],
   ([newIsConfirmed, newHash]) => {
+    console.log('Transaction Status Changed:', {
+      isConfirmed: newIsConfirmed,
+      hash: newHash,
+      currentPaymentMessage: currentPaymentMessage.value
+    })
+    
     if (newIsConfirmed && newHash && currentPaymentMessage.value) {
       message.success('Payment confirmed!')
       // 发送包含 hash 的消息
@@ -345,13 +351,23 @@ const sendEth = async () => {
       return
     }
 
+    console.log('Sending Transaction:', {
+      recipient: paymentInfo.recipient_address,
+      price: paymentInfo.price,
+      chainId: paymentInfo.chainId,
+      currentChainId: chainId.value
+    })
+
     // 发送交易
     sendTransaction({ 
       to: recipient_address as `0x${string}`, 
       value: parseEther(price)
     })
 
-    console.log('Transaction hash changed:', hash.value)
+    console.log('Transaction Sent:', {
+      hash: hash.value,
+      error: error.value
+    })
 
     if (error?.value) {
       message.error(`Transaction failed: ${error.value?.message}`)
@@ -379,6 +395,32 @@ const handleSendEth = () => {
     return
   }
 
+  // 检查是否已经有成功的交易
+  if (isConfirmed.value && hash.value) {
+    dialog.warning({
+      title: 'Payment Already Sent',
+      content: () => h('div', null, [
+        h('p', null, 'You have already made a payment for this request.'),
+        h('p', { style: 'margin-top: 8px; color: #666;' }, 
+          `Previous transaction hash: ${hash.value}`),
+        h('p', { style: 'margin-top: 12px; color: #2C0CB9;' }, 
+          'Do you still want to make another payment?'),
+        h('p', { style: 'margin-top: 8px; font-size: 12px; color: #999;' }, [
+          h('span', null, `Amount: ${paymentInfo.price} ETH`),
+          h('br'),
+          h('span', null, `Recipient: ${paymentInfo.recipient_address}`),
+          h('br'),
+          h('span', null, `Network: ${paymentInfo.network}`)
+        ])
+      ]),
+      positiveText: 'Yes, Pay Again',
+      negativeText: 'Cancel',
+      onPositiveClick: sendEth
+    })
+    return
+  }
+
+  // 如果是首次支付，显示正常的确认对话框
   dialog.warning({
     title: 'Send ETH',
     content: () => h('div', null, [
@@ -394,14 +436,24 @@ const handleSendEth = () => {
   })
 }
 
-// 检查支付状态的按钮仍然保留，以便用户手动检查
+// 检查支付状态的按钮
 const checkPayment = async () => {
+  // 打印所有相关状态
+  console.log('Payment Status:', {
+    hash: hash.value,
+    isPending: isPending.value,
+    isConfirming: isConfirming.value,
+    isConfirmed: isConfirmed.value,
+    error: error.value,
+    currentPaymentMessage: currentPaymentMessage.value
+  })
+
   if (!hash.value) {
     message.warning('No transaction found')
     return
   }
 
-  if (isConfirming) {
+  if (isConfirming.value) {
     message.info('Checking payment status...')
     return
   }
@@ -411,7 +463,7 @@ const checkPayment = async () => {
     return
   }
 
-  if (isConfirmed) {
+  if (isConfirmed.value) {
     dialog.info({
       title: 'Transaction Confirmed',
       content: () => h('div', null, [
@@ -438,12 +490,19 @@ const checkPayment = async () => {
   }
 }
 
-// 更新按钮状态的显示
+// 更新按钮状态的显示逻辑也需要修改
 const ethButtonText = computed(() => {
-  if (isTransactionFailed.value) return 'Send ETH' // 交易失败时显示初始状态
-  if (isPending) return 'Sending...'
-  if (isConfirming) return 'Confirming...'
-  if (isConfirmed) return 'Confirmed!'
+  console.log('Button Status:', {
+    isTransactionFailed: isTransactionFailed.value,
+    isPending: isPending.value,
+    isConfirming: isConfirming.value,
+    isConfirmed: isConfirmed.value
+  })
+  
+  if (isTransactionFailed.value) return 'Send ETH'
+  if (isPending.value) return 'Sending...'
+  if (isConfirming.value) return 'Confirming...'
+  if (isConfirmed.value) return 'Confirmed!'
   return 'Send ETH'
 })
 

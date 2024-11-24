@@ -1,5 +1,5 @@
 import { createAppKit } from '@reown/appkit/vue'
-import { base } from '@reown/appkit/networks'
+import { baseSepolia } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { walletConnect, coinbaseWallet, injected } from 'wagmi/connectors'
 import { http } from 'wagmi'
@@ -14,7 +14,7 @@ const metadata = {
 }
 
 // 只使用 Base 网络
-export const networks = [base]
+export const networks = [baseSepolia]
 
 // 创建连接器数组
 const connectors = [
@@ -35,7 +35,7 @@ const connectors = [
 // 创建Wagmi适配器
 export const wagmiAdapter = new WagmiAdapter({
   transports: {
-    [base.id]: http()
+    [baseSepolia.id]: http()
   },
   connectors,
   projectId,
@@ -65,7 +65,7 @@ const themeVariables = {
 export const initWallet = () => {
   return createAppKit({
     adapters: [wagmiAdapter],
-    networks: [base],
+    networks: [baseSepolia],
     projectId,
     metadata,
     themeMode: 'light', // 使用亮色主题
