@@ -7,23 +7,6 @@
     
     <!-- 主聊天界面 -->
     <div class="chat-interface">
-      <!-- 角色切换开关 -->
-      <div class="role-switch-card">
-        <n-switch
-          class="role-switch"
-          :value="currentRole === 'vrm02'"
-          @update:value="handleRoleSwitch"
-          :rail-style="railStyle"
-        >
-          <template #checked>
-            Mature
-          </template>
-          <template #unchecked>
-            Kawaii
-          </template>
-        </n-switch>
-      </div>
-
       <!-- 钱包卡片 -->
       <div class="wallet-card">
         <div class="wallet-header">
@@ -48,6 +31,28 @@
               <ChatIcon />
             </n-icon>
             <span class="header-title">MISATO</span>
+            <div class="role-icons" @click="toggleRoleSelect">
+              <n-icon size="20" class="clo-icon">
+                <CloIcon />
+              </n-icon>
+              <n-icon size="12" class="down-icon">
+                <DownIcon />
+              </n-icon>
+              <div v-if="showRoleSelect" 
+                   class="role-select" 
+                   :class="{ 'role-select-top': !isExpanded }">
+                <div class="role-option" 
+                     :class="{ 'selected': currentRole === 'vrm01' }"
+                     @click="selectRole('vrm01')">
+                  Kawaii
+                </div>
+                <div class="role-option" 
+                     :class="{ 'selected': currentRole === 'vrm02' }"
+                     @click="selectRole('vrm02')">
+                  Mature
+                </div>
+              </div>
+            </div>
           </div>
           <div class="header-right">
             <n-icon size="20" class="mode-icon clickable" @click="toggleExpand">
@@ -104,7 +109,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useWalletStore } from '@/stores'
 import LogoIcon from '@/assets/icons/small_logo.svg?component'
@@ -117,6 +122,8 @@ import TurboModeIcon from '@/assets/icons/t.svg'
 import { useAppKit } from '@reown/appkit/vue'
 import type { CSSProperties } from 'vue'
 import { useChatStore } from '@/stores'
+import CloIcon from '@/assets/icons/clo.svg?component'
+import DownIcon from '@/assets/icons/ic_down.svg?component'
 
 const isExpanded = ref(true)
 const walletStore = useWalletStore()
@@ -126,14 +133,6 @@ const modal = useAppKit()
 
 // 添加角色状态
 const currentRole = ref('vrm01')
-
-// 添加切换角色方法
-const handleRoleSwitch = (checked: boolean) => {
-  currentRole.value = checked ? 'vrm02' : 'vrm01'
-  // @ts-ignore
-  window.unityInstance?.SendMessage('RolleManager', 'SwitchRole', currentRole.value)
-  message.success(`Switched to ${checked ? 'Mature' : 'Kawaii'} style`)
-}
 
 const toggleExpand = () => {
   isExpanded.value = !isExpanded.value
@@ -168,27 +167,33 @@ watch(() => walletStore.isConnected, async (newValue) => {
   }
 })
 
-const railStyle = ({
-  focused,
-  checked
-}: {
-  focused: boolean
-  checked: boolean
-}) => {
-  const style: CSSProperties = {}
-  if (checked) {
-    style.background = '#FA75FF' // 使用项目的粉色主题
-    if (focused) {
-      style.boxShadow = '0 0 0 2px rgba(250, 117, 255, 0.3)'
-    }
-  } else {
-    style.background = '#C79DDC' // 使用项目的紫色主题
-    if (focused) {
-      style.boxShadow = '0 0 0 2px rgba(199, 157, 220, 0.3)'
-    }
-  }
-  return style
+const showRoleSelect = ref(false)
+
+const toggleRoleSelect = () => {
+  showRoleSelect.value = !showRoleSelect.value
 }
+
+const selectRole = (role: string) => {
+  if (role === currentRole.value) {
+    showRoleSelect.value = false
+    return
+  }
+  currentRole.value = role
+  // @ts-ignore
+  window.unityInstance?.SendMessage('RolleManager', 'SwitchRole', role)
+  message.success(`Switched to ${role === 'vrm02' ? 'Mature' : 'Kawaii'} style`)
+  showRoleSelect.value = false
+}
+
+// 点击其他地方关闭选择框
+onMounted(() => {
+  document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement
+    if (!target.closest('.role-icons') && !target.closest('.role-select')) {
+      showRoleSelect.value = false
+    }
+  })
+})
 </script>
 
 <style scoped>
@@ -565,33 +570,73 @@ const railStyle = ({
   opacity: 0.8;
 }
 
-.role-switch-card {
-  position: absolute;
-  top: 24px;
-  left: 8px;
+.role-icons {
   display: flex;
-  padding: 8px;
+  padding-right: 2px;
   align-items: center;
-  background: rgba(0, 0, 0, 0.24);
-  backdrop-filter: blur(12px);
+  background: var(--Text-P, #2C0CB9);
+  margin-left: 12px;
+  height: 20px;
+  width: 32px;
+  cursor: pointer;
+  position: relative;
 }
 
-.role-switch {
-  pointer-events: auto;
-}
-
-.role-switch :deep(.n-switch__rail) {
-  background-color: #C79DDC;
-}
-
-.role-switch :deep(.n-switch__button) {
-  background-color: #FFFFFF;
-}
-
-.role-switch :deep(.n-switch__checked),
-.role-switch :deep(.n-switch__unchecked) {
+.role-icons :deep(.clo-icon) {
   color: #FFFFFF;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.role-icons :deep(.down-icon) {
+  color: #FFFFFF;
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.role-icons :deep(.n-icon svg) {
+  width: 100%;
+  height: 100%;
+}
+
+.role-select {
+  position: absolute;
+  left: 0;
+  display: flex;
+  padding: 2px;
+  flex-direction: column;
+  align-items: flex-start;
+  align-self: stretch;
+  background: #EBD2EF;
+  border: 1px solid #2C0CB9;
+  z-index: 100;
+}
+
+.role-select-top {
+  bottom: 100%;
+  margin-bottom: 4px;
+}
+
+.role-select:not(.role-select-top) {
+  top: 100%;
+  margin-top: 4px;
+}
+
+.role-option {
+  width: 100%;
+  padding: 4px 8px;
+  color: #2C0CB9;
   font-family: '04b03', monospace;
-  font-size: 12px;
+  font-size: 14px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.role-option:hover {
+  background: rgba(199, 157, 220, 0.5);
+}
+
+.role-option.selected {
+  background: #C79DDC;
 }
 </style> 

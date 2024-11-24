@@ -101,9 +101,9 @@ onMounted(() => {
   const buildUrl = "/Build"
   const config = {
     arguments: [],
-    dataUrl: `${buildUrl}/7631b2dd1647e109e9d7d5d85755f62c.data.br`,
-    frameworkUrl: `${buildUrl}/949032bf0d627d4f98a91e29f4d9b015.framework.js.br`,
-    codeUrl: `${buildUrl}/34ff67de1cf5d0c93568e19a370a7975.wasm.br`,
+    dataUrl: `${buildUrl}/f05db49ec785993107523c3e44464e2d.data.br`,
+    frameworkUrl: `${buildUrl}/79c44ca5710802631019722ec90e3f79.framework.js.br`,
+    codeUrl: `${buildUrl}/0b4dc13bfdc50ce8f36e14c84a8b69ec.wasm.br`,
     streamingAssetsUrl: "StreamingAssets",
     companyName: "yehe",
     productName: "Misato",
@@ -112,7 +112,7 @@ onMounted(() => {
   }
 
   const script = document.createElement("script")
-  script.src = `${buildUrl}/f997d49c14851abac784b296cce53af5.loader.js`
+  script.src = `${buildUrl}/193279fe7aba801efd454d4662d27958.loader.js`
   script.onload = () => {
     // @ts-ignore
     createUnityInstance(unityCanvas.value, config, (progress: number) => {
