@@ -149,6 +149,20 @@ const isTransactionFailed = ref(false)
 // 添加一个响应式变量存储最新的交易hash
 const latestPaymentHash = ref<string | null>(null)
 
+watch(
+  () => chatStore.messages,
+  (newMessages) => {
+    // 当消息被清空时（长度为 0 或只有初始消息），重置所有支付相关状态
+    if (newMessages.length <= 1) {
+      latestPaymentHash.value = null
+      currentPaymentMessage.value = null
+      isTransactionFailed.value = false
+    }
+    scrollToBottom()
+  },
+  { deep: true }
+)
+
 // 添加 formatTime 函数
 const formatTime = (date: Date) => {
   const hours = date.getHours().toString().padStart(2, '0')
@@ -198,14 +212,6 @@ watch(
   }
 )
 
-// 添加对消息列表的监听
-watch(
-  () => chatStore.messages,
-  () => {
-    scrollToBottom()
-  },
-  { deep: true }
-)
 
 // 添加对处理状态的监听
 watch(
