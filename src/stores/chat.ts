@@ -177,7 +177,7 @@ export const useChatStore = defineStore('chat', () => {
         time: formatTime(new Date())
       })
 
-      // 逐句发送到 Unity 进行语音播放
+      // 逐句发送到 Unity 进行语音播放前进行数字转换
       sentences.forEach((sentence: string, index: number) => {
         const cleanSentence = sentence.trim()
         if (cleanSentence) {
@@ -185,7 +185,7 @@ export const useChatStore = defineStore('chat', () => {
             'JSCall', 
             'AddVoice', 
             JSON.stringify({
-              content: cleanSentence,
+              content: convertNumberToWords(cleanSentence), // 添加数字转换
               finish: index === lastIndex
             })
           )
@@ -260,7 +260,7 @@ export const useChatStore = defineStore('chat', () => {
                 'JSCall', 
                 'AddVoice', 
                 JSON.stringify({
-                  content: cleanSentence,
+                  content: convertNumberToWords(cleanSentence), // 添加数字转换
                   finish: index === lastIndex
                 })
               )
@@ -375,6 +375,61 @@ export const useChatStore = defineStore('chat', () => {
       resetMessages()
     }
   }, { immediate: true })
+
+  const convertNumberToWords = (text: string): string => {
+    const numberWords: { [key: string]: string } = {
+      '0': 'zero', '1': 'one', '2': 'two', '3': 'three', '4': 'four',
+      '5': 'five', '6': 'six', '7': 'seven', '8': 'eight', '9': 'nine',
+      '10': 'ten', '11': 'eleven', '12': 'twelve', '13': 'thirteen',
+      '14': 'fourteen', '15': 'fifteen', '16': 'sixteen',
+      '17': 'seventeen', '18': 'eighteen', '19': 'nineteen',
+      '20': 'twenty', '30': 'thirty', '40': 'forty', '50': 'fifty',
+      '60': 'sixty', '70': 'seventy', '80': 'eighty', '90': 'ninety'
+    }
+
+    return text.replace(/\b\d*\.?\d+\b/g, (match) => {
+      // 处理小数
+      if (match.includes('.')) {
+        const [intPart, decPart] = match.split('.')
+        const intWords = intPart === '' ? 'zero' : 
+                        intPart === '0' ? 'zero' : 
+                        convertNumber(intPart)
+        
+        const decWords = decPart.split('')
+          .map(digit => numberWords[digit])
+          .join(' ')
+        
+        return `${intWords} point ${decWords}`
+      }
+      
+      // 处理整数
+      return convertNumber(match)
+    })
+
+    // 处理数字的辅助函数
+    function convertNumber(num: string): string {
+      const number = parseInt(num)
+      
+      // 处理 0-99 的数字
+      if (number >= 0 && number < 100) {
+        if (numberWords[num]) {
+          return numberWords[num]
+        }
+        if (number > 20) {
+          const tens = Math.floor(number / 10) * 10
+          const ones = number % 10
+          return ones > 0 
+            ? `${numberWords[tens.toString()]}-${numberWords[ones.toString()]}` 
+            : numberWords[tens.toString()]
+        }
+      }
+      
+      // 对于其他数字，逐个读出
+      return num.split('')
+        .map(digit => numberWords[digit])
+        .join(' ')
+    }
+  }
 
   return {
     messages,
