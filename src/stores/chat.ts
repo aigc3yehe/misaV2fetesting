@@ -6,7 +6,7 @@ interface ChatMessage {
   id: number
   content: string
   role: 'user' | 'assistant' | 'system'
-  type: 'text' | 'image' | 'error'
+  type: 'text' | 'image' | 'error' | 'transaction'
   time?: string
   show_status?: 'send_eth'
   payment_info?: {
@@ -91,7 +91,10 @@ export const useChatStore = defineStore('chat', () => {
     processingState.value = 'thinking'
     
     const conversation_history = messages.value
-      .filter(msg => msg.role === 'assistant' || msg.role === 'user')
+      .filter(msg => 
+        (msg.role === 'assistant' || msg.role === 'user') && 
+        msg.type !== 'transaction'
+      )
       .map(msg => ({ 
         role: msg.role, 
         content: msg.content 
@@ -147,6 +150,25 @@ export const useChatStore = defineStore('chat', () => {
             chainId: chainId
           }
         })
+
+        // 添加语音播放
+        const sentences = content.split(/[.,!?。！？]/g).filter(Boolean)
+        const lastIndex = sentences.length - 1
+
+        sentences.forEach((sentence: string, index: number) => {
+          const cleanSentence = sentence.trim()
+          if (cleanSentence) {
+            window.unityInstance?.SendMessage(
+              'JSCall', 
+              'AddVoice', 
+              JSON.stringify({
+                content: convertNumberToWords(cleanSentence),
+                finish: index === lastIndex
+              })
+            )
+          }
+        })
+
         processingState.value = 'idle'
         return
       }
@@ -387,6 +409,18 @@ export const useChatStore = defineStore('chat', () => {
       '60': 'sixty', '70': 'seventy', '80': 'eighty', '90': 'ninety'
     }
 
+    const ordinalWords: { [key: string]: string } = {
+      '1': 'first', '2': 'second', '3': 'third', '4': 'fourth',
+      '5': 'fifth', '6': 'sixth', '7': 'seventh', '8': 'eighth',
+      '9': 'ninth', '10': 'tenth'
+    }
+
+    // 首先处理序号格式 (例如: "1.", "2.")
+    text = text.replace(/(\d+)\.\s/g, (match, num) => {
+      return ordinalWords[num] ? `${ordinalWords[num]}, ` : `number ${num}, `
+    })
+
+    // 然后处理其他数字
     return text.replace(/\b\d*\.?\d+\b/g, (match) => {
       // 处理小数
       if (match.includes('.')) {

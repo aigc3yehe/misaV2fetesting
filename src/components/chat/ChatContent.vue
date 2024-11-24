@@ -8,7 +8,7 @@
              :class="['message', message.role === 'user' ? 'user' : 'assistant']">
           <div class="message-wrapper">
             <div class="message-content">
-              <div v-if="message.type === 'text'" 
+              <div v-if="message.type === 'text' || message.type === 'transaction'" 
                    :class="['message-bubble', message.show_status === 'send_eth' ? 'eth-status' : '']">
                 <div class="message-text">
                   <MDRenderer :content="message.content" @preview-image="openImagePreview" />
@@ -146,6 +146,16 @@ const currentPaymentMessage = ref<any>(null)
 // 添加一个状态来跟踪交易是否失败
 const isTransactionFailed = ref(false)
 
+// 添加一个响应式变量存储最新的交易hash
+const latestPaymentHash = ref<string | null>(null)
+
+// 添加 formatTime 函数
+const formatTime = (date: Date) => {
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  return `${hours}:${minutes}`
+}
+
 // 监听错误状态
 watch(error, (newError) => {
   if (newError) {
@@ -167,23 +177,22 @@ watch(error, (newError) => {
   }
 })
 
-// 使用 watch 监听交易状态
+// 修改交易状态监听
 watch(
   [() => isConfirmed.value, () => hash.value],
-  ([newIsConfirmed, newHash]) => {
-    console.log('Transaction Status Changed:', {
-      isConfirmed: newIsConfirmed,
-      hash: newHash,
-      currentPaymentMessage: currentPaymentMessage.value
-    })
-    
-    if (newIsConfirmed && newHash && currentPaymentMessage.value) {
+  ([newIsConfirmed, newHash]) => {    
+    if (newIsConfirmed && newHash) {
       message.success('Payment confirmed!')
-      // 发送包含 hash 的消息
-      chatStore.sendMessage('payed', {
-        pay_fee_hash: newHash
+      // 存储最新的交易hash
+      latestPaymentHash.value = newHash
+      // 添加提示消息
+      chatStore.addMessage({
+        id: Date.now(),
+        type: 'transaction', // 使用新的消息类型
+        role: 'user',
+        content: "Submitted the transaction. I will click 'check payment' and copy hash to you, after the transaction is confirmed.",
+        time: formatTime(new Date())
       })
-      // 清除当前交易消息
       currentPaymentMessage.value = null
     }
   }
@@ -226,14 +235,16 @@ const scrollToBottom = () => {
   })
 }
 
-// 简化后的发送消息方法
+// 修改发送消息方法，添加最新的交易hash
 const sendMessage = async () => {
   if (!inputMessage.value.trim() || chatStore.processingState !== 'idle') return
   
   const messageText = inputMessage.value.trim()
   inputMessage.value = ''
   
-  await chatStore.sendMessage(messageText)
+  await chatStore.sendMessage(messageText, {
+    pay_fee_hash: latestPaymentHash.value || undefined // 每次发送消息都带上最新的交易hash
+  })
   scrollToBottom()
 }
 
@@ -271,7 +282,7 @@ const inputThemeOverrides = {
   border: 'none',
   borderRadius: '0',
   textColor: '#2C0CB9',
-  placeholderColor: '#2C0CB9',
+  placeholderColor: '#C79DDC',
   
   // 移除所有状态效果
   borderHover: 'none',
@@ -600,15 +611,24 @@ onUnmounted(() => {
 
 .message-image-container {
   max-width: 512px;
+  aspect-ratio: 1;
+  width: 300px;
+  height: 300px;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .message-image {
   max-width: 300px;
+  max-height: 300px;
   height: auto;
   border-radius: 8px;
-  margin: 8px 0;
+  margin: 0;
   cursor: zoom-in;
   transition: transform 0.2s ease;
+  object-fit: contain;
 }
 
 .message-image:hover {
