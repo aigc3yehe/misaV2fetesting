@@ -7,22 +7,6 @@
     
     <!-- 主聊天界面 -->
     <div class="chat-interface">
-      <!-- 钱包卡片 -->
-      <div class="wallet-card">
-        <div class="wallet-header">
-          <n-icon size="20" class="logo-icon">
-            <LogoIcon />
-          </n-icon>
-        </div>
-        <div class="wallet-content">
-          <n-text class="wallet-content-text">MISATO's wallet</n-text>
-          <n-text code class="hidden-address">{{ walletStore.misatoWalletAddress }}</n-text>
-          <n-button class="copy-button" @click="copyMisatoWalletAddress">
-            Copy
-          </n-button>
-        </div>
-      </div>
-
       <!-- 聊天面板 -->
       <div class="chat-panel" :class="{ 'expanded': isExpanded }">
         <div class="chat-header">
@@ -31,27 +15,35 @@
               <ChatIcon />
             </n-icon>
             <span class="header-title">MISATO</span>
-            <div class="role-icons" @click="toggleRoleSelect">
-              <n-icon size="20" class="clo-icon">
+            <div class="role-icons clickable" @click="toggleRoleSelect">
+              <n-icon size="20" class="clo-icon clickable">
                 <CloIcon />
               </n-icon>
-              <n-icon size="12" class="down-icon">
+              <n-icon size="12" class="down-icon clickable">
                 <DownIcon />
               </n-icon>
               <div v-if="showRoleSelect" 
-                   class="role-select" 
+                   class="role-select clickable" 
                    :class="{ 'role-select-top': !isExpanded }">
-                <div class="role-option" 
+                <div class="role-option clickable" 
                      :class="{ 'selected': currentRole === 'vrm01' }"
                      @click="selectRole('vrm01')">
                   Kawaii
                 </div>
-                <div class="role-option" 
+                <div class="role-option clickable" 
                      :class="{ 'selected': currentRole === 'vrm02' }"
                      @click="selectRole('vrm02')">
                   Mature
                 </div>
               </div>
+            </div>
+            <div class="copy-icons clickable" @click="copyMisatoWalletAddress">
+              <n-icon size="20" class="wallet-copy-icon clickable">
+                <WalletCopyIcon />
+              </n-icon>
+              <n-icon size="12" class="ic-copy-icon clickable">
+                <IcCopyIcon />
+              </n-icon>
             </div>
           </div>
           <div class="header-right">
@@ -112,7 +104,6 @@
 import { ref, watch, onMounted } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useWalletStore } from '@/stores'
-import LogoIcon from '@/assets/icons/small_logo.svg?component'
 import UnityGame from '../UnityGame.vue'
 import ChatContent from './ChatContent.vue'
 import LoadingIcon from '@/assets/icons/loading.svg?component'
@@ -120,10 +111,11 @@ import ChatIcon from '@/assets/icons/chat_icon.svg'
 import SimpleModeIcon from '@/assets/icons/s.svg'
 import TurboModeIcon from '@/assets/icons/t.svg'
 import { useAppKit } from '@reown/appkit/vue'
-import type { CSSProperties } from 'vue'
 import { useChatStore } from '@/stores'
 import CloIcon from '@/assets/icons/clo.svg?component'
 import DownIcon from '@/assets/icons/ic_down.svg?component'
+import WalletCopyIcon from '@/assets/icons/wallet_copy.svg?component'
+import IcCopyIcon from '@/assets/icons/ic_copy.svg?component'
 
 const isExpanded = ref(true)
 const walletStore = useWalletStore()
@@ -227,95 +219,6 @@ onMounted(() => {
   pointer-events: none;
 }
 
-.wallet-card {
-  position: absolute;
-  top: 24px;
-  right: 8px;
-  width: 120px;
-  display: flex;
-  padding: 8px;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  align-self: stretch;
-  background: rgba(0, 0, 0, 0.24);
-  backdrop-filter: blur(12px);
-}
-
-.wallet-header {
-  display: flex;
-  justify-content: center;
-}
-
-.logo-icon {
-  color: var(--brand-secondary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px !important;
-  height: 20px !important;
-}
-
-.logo-icon :deep(svg) {
-  width: 20px !important;
-  height: 20px !important;
-}
-
-.logo-icon :deep(.n-icon-slot) {
-  width: 20px !important;
-  height: 20px !important;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.wallet-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin-top: -8px;
-}
-
-.wallet-content-text {
-  font-family: '04b03', monospace;
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 20px;
-  text-align: left;
-  text-underline-position: from-font;
-  text-decoration-skip-ink: none;
-  color: rgba(255, 255, 255, 0.72); /* #FFFFFFB8 */
-}
-
-.hidden-address {
-  display: none; /* 隐藏地址文本 */
-}
-
-.copy-button {
-  display: flex;
-  height: 24px;
-  padding: 4px 0;
-  justify-content: center;
-  align-items: center;
-  gap: 6px;
-  align-self: stretch;
-  background: rgba(0, 0, 0, 0.24) !important;
-  color: #FFFFFF;
-  font-family: '04b03', monospace;
-  font-size: 12px;
-  font-style: normal;
-  font-weight: 400;
-  line-height: 20px;
-  transition: opacity 0.2s;
-  border-radius: 0px;
-}
-
-.copy-button:hover {
-  color: var(--brand-primary) !important; /* 使用品牌主色（粉色） */
-  opacity: 0.8;
-}
-
 .chat-panel {
   position: absolute;
   bottom: 8px;
@@ -346,6 +249,7 @@ onMounted(() => {
   align-self: stretch;
   border: 1px solid #2C0CB9;
   background: #EBD2EF;
+  z-index: 500;
 }
 
 .header-left {
@@ -522,7 +426,9 @@ onMounted(() => {
 .input-container,
 .messages-container,
 .n-button,
-.chat-content-container {
+.chat-content-container,
+.role-icons,
+.copy-icons {
   pointer-events: auto;
 }
 
@@ -559,10 +465,10 @@ onMounted(() => {
   height: calc(100% - 40px); /* 40px 是标题栏的高度 */
   overflow: hidden;
   position: relative;
+  z-index: 1;
 }
 
 .clickable {
-  cursor: pointer;
   transition: opacity 0.2s;
 }
 
@@ -575,10 +481,9 @@ onMounted(() => {
   padding-right: 2px;
   align-items: center;
   background: var(--Text-P, #2C0CB9);
-  margin-left: 12px;
+  margin-left: 5px;
   height: 20px;
   width: 32px;
-  cursor: pointer;
   position: relative;
 }
 
@@ -599,6 +504,34 @@ onMounted(() => {
   height: 100%;
 }
 
+.copy-icons {
+  display: flex;
+  padding-right: 2px;
+  align-items: center;
+  background: var(--Text-P, #2C0CB9);
+  margin-left: 5px;
+  height: 20px;
+  width: 32px;
+  position: relative;
+}
+
+.copy-icons :deep(.wallet-copy-icon) {
+  color: #FFFFFF;
+  width: 20px !important;
+  height: 20px !important;
+}
+
+.copy-icons :deep(.ic-copy-icon) {
+  color: #FFFFFF;
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.copy-icons :deep(.n-icon svg) {
+  width: 100%;
+  height: 100%;
+}
+
 .role-select {
   position: absolute;
   left: 0;
@@ -609,7 +542,7 @@ onMounted(() => {
   align-self: stretch;
   background: #EBD2EF;
   border: 1px solid #2C0CB9;
-  z-index: 100;
+  z-index: 1001;
 }
 
 .role-select-top {
@@ -628,15 +561,21 @@ onMounted(() => {
   color: #2C0CB9;
   font-family: '04b03', monospace;
   font-size: 14px;
-  cursor: pointer;
   white-space: nowrap;
 }
 
 .role-option:hover {
   background: rgba(199, 157, 220, 0.5);
+  opacity: 1 !important;
 }
 
 .role-option.selected {
   background: #C79DDC;
+}
+
+.role-select,
+.role-select .role-option {
+  transition: none;  /* 移除透明度过渡 */
+  opacity: 1 !important;  /* 强制不透明 */
 }
 </style> 
