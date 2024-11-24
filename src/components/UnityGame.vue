@@ -100,9 +100,9 @@ onMounted(() => {
   const buildUrl = "/Build"
   const config = {
     arguments: [],
-    dataUrl: `${buildUrl}/f05db49ec785993107523c3e44464e2d.data.br`,
+    dataUrl: `${buildUrl}/cdbaeccd04c44cdf60e582a123ea8608.data.br`,
     frameworkUrl: `${buildUrl}/79c44ca5710802631019722ec90e3f79.framework.js.br`,
-    codeUrl: `${buildUrl}/0b4dc13bfdc50ce8f36e14c84a8b69ec.wasm.br`,
+    codeUrl: `${buildUrl}/318453e9971360a1eee9031185ad79b5.wasm.br`,
     streamingAssetsUrl: "StreamingAssets",
     companyName: "yehe",
     productName: "Misato",
