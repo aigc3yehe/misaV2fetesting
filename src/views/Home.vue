@@ -16,17 +16,14 @@
             'menu-open': isMenuOpen 
           }"
         >
+          <a href="http://www.misato.ai" target="_blank" class="misato-link">
+            misato.ai
+          </a>
           <a href="https://x.com/Misato_virtuals" target="_blank">
             <img src="@/assets/x.png" class="social-icon" />
           </a>
-          <a href="https://app.virtuals.io/virtuals/657" target="_blank">
-            <img src="@/assets/virtuals.png" class="social-icon" />
-          </a>
           <a href="https://t.me/misatocoin" target="_blank">
             <img src="@/assets/telegram.png" class="social-icon" />
-          </a>
-          <a href="https://dexscreener.com/base/0x863e3a73c604d5038d41e2512272a73585f70017" target="_blank">
-            <img src="@/assets/dexscreener.png" class="social-icon" />
           </a>
         </div>
         
@@ -1056,5 +1053,24 @@ const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
 .chat-icon :deep(svg) {
   width: 20px;
   height: 20px;
+}
+
+.misato-link {
+  font-family: '04b03';
+  font-size: 20px;
+  margin-top: 4px;
+  color: var(--brand-primary);
+  text-decoration: none;
+  padding: 4px 8px;
+}
+
+.misato-link:hover {
+  opacity: 0.8;
+}
+
+@media (max-width: 768px) {
+  .misato-link {
+    font-size: 14px;
+  }
 }
 </style>
