@@ -1,4 +1,4 @@
-import { createConfig, http } from '@wagmi/vue'
+/* import { createConfig, http } from '@wagmi/vue'
 import { baseSepolia } from 'viem/chains'
 import { injected } from '@wagmi/vue/connectors'
 
@@ -10,4 +10,4 @@ export const config = createConfig({
   transports: {
     [baseSepolia.id]: http()
   }
-})
+}) */

@@ -3,6 +3,7 @@ import { baseSepolia } from '@reown/appkit/networks'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { walletConnect, coinbaseWallet, injected } from 'wagmi/connectors'
 import { http } from 'wagmi'
+import { useAppKitInstance } from '@/composables/useAppKitInstance'
 
 const projectId = '24138badb492a0fbadb1a04687d27fcd'
 
@@ -63,7 +64,7 @@ const themeVariables = {
 
 // 初始化钱包函数
 export const initWallet = () => {
-  return createAppKit({
+  const instance = createAppKit({
     adapters: [wagmiAdapter],
     networks: [baseSepolia],
     projectId,
@@ -81,4 +82,10 @@ export const initWallet = () => {
     },
     enableWalletConnect: true
   })
+  
+  // 保存实例
+  const { setInstance } = useAppKitInstance()
+  setInstance(instance)
+  
+  return instance
 } 

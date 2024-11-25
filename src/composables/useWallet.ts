@@ -1,178 +1,96 @@
-import { ref, h, watch, onMounted } from 'vue'
-import { useAccount, useConnect, useDisconnect } from '@wagmi/vue'
+import { ref, computed, watch } from 'vue'
 import { useWalletStore } from '@/stores'
-import { useMessage, useDialog } from 'naive-ui'
-import { useAppKit, useAppKitAccount } from '@reown/appkit/vue'
+import { useMessage } from 'naive-ui'
+import { useAppKit, useAppKitAccount, useWalletInfo, useDisconnect } from '@reown/appkit/vue'
+import { useAppKitInstance } from '@/composables/useAppKitInstance'
+
+const projectId = '24138badb492a0fbadb1a04687d27fcd'
+
+interface WalletListing {
+  id: string
+  name: string
+  rdns: string
+  image_url: {
+    sm: string
+    md: string
+    lg: string
+  }
+}
 
 export function useWallet() {
-  const { address, isConnected, connector } = useAccount()
-  const { connectors } = useConnect()
-  const { disconnect } = useDisconnect()
   const walletStore = useWalletStore()
   const message = useMessage()
-  const dialog = useDialog()
-  const currentConnector = ref<any>(null)
   const appKitAccount = useAppKitAccount()
   const modal = useAppKit()
+  const { disconnect } = useDisconnect()
+  const { walletInfo } = useWalletInfo()
+  const { appKitInstance } = useAppKitInstance()
 
-  onMounted(async () => {
-    if (isConnected.value && connector.value) {
-      try {
-        const connectorInfo = connectors.find(c => c.id === connector.value?.id)
-        if (connectorInfo) {
-          currentConnector.value = connectorInfo
-          walletStore.setWalletInfo({
-            name: connectorInfo.name || '',
-            icon: connectorInfo.icon || ''
-          })
-          if (address.value) {
-            walletStore.setUserWalletAddress(address.value)
-            walletStore.setConnected(true)
-          }
-        }
-      } catch (error) {
-        console.error('Failed to restore wallet state:', error)
-      }
+  const getWalletIcon = async (rdns: string) => {
+    try {
+      const walletName = rdns.split('.').pop() || ''
+
+      console.log('walletName', walletName)
+      
+      const response = await fetch(`https://explorer-api.walletconnect.com/v3/wallets?projectId=${projectId}&search=${walletName}`)
+      const data = await response.json()
+      
+      // 获取所有钱包列表
+      const wallets = Object.values(data.listings) as WalletListing[]
+      
+      if (wallets.length === 0) return ''
+      
+      // 尝试找到匹配 rdns 的钱包
+      const wallet = wallets.find((w) => w.rdns === rdns) || wallets[0]
+      
+      // 返回中等尺寸的图标 URL
+      console.log('wallet icon', wallet.image_url.md)
+      return wallet.image_url.md
+    } catch (error) {
+      console.error('Failed to fetch wallet icon:', error)
+      return ''
+    }
+  }
+
+  appKitInstance.value.subscribeWalletInfo(async (state: any) => {
+    console.log('state', state)
+    const searchTerm = state?.rdns || state?.name || ''
+    if (searchTerm) {
+      const iconUrl = await getWalletIcon(searchTerm)
+      walletStore.setWalletInfo({
+        name: searchTerm,
+        icon: iconUrl
+      })
     }
   })
 
-  watch(() => connector.value, (newConnector) => {
-    if (newConnector && isConnected.value) {
-      const connectorInfo = connectors.find(c => c.id === newConnector.id)
-      if (connectorInfo) {
-        currentConnector.value = connectorInfo
+  // 从 AppKit 获取状态
+  const address = computed(() => appKitAccount.value.address)
+  const isConnected = computed(() => appKitAccount.value.isConnected)
+
+  // 监听 AppKit 账户变化
+  watch(() => appKitAccount.value, (account) => {
+    console.log('account', account)
+    console.log('walletInfo', walletInfo.value)
+    if (account.isConnected && account.address) {
+      walletStore.setUserWalletAddress(account.address)
+      walletStore.setConnected(true)
+      // 使用 walletInfo 更新钱包信息
+      console.log('walletInfo', walletInfo.value)
+      if (walletInfo.value) {
         walletStore.setWalletInfo({
-          name: connectorInfo.name || '',
-          icon: connectorInfo.icon || ''
+          name: walletInfo.value.name || '',
+          icon: walletInfo.value.icon || ''
         })
       }
+    } else {
+      walletStore.disconnectWallet()
     }
   }, { immediate: true })
-
-  watch(() => isConnected.value, (newValue) => {
-    if (newValue && address.value && currentConnector.value) {
-      walletStore.setUserWalletAddress(address.value)
-      walletStore.setConnected(true)
-      walletStore.setWalletInfo({
-        name: currentConnector.value.name || '',
-        icon: currentConnector.value.icon || ''
-      })
-    }
-  })
-
-  watch([
-    () => isConnected.value,
-    () => appKitAccount.value
-  ], ([wagmiConnected, appKitAccount]) => {
-    if (!wagmiConnected && appKitAccount.isConnected) {
-      modal.close()
-    }
-  }, { immediate: true })
-
-  const checkWalletEnvironment = () => {
-    if (typeof window === 'undefined' || !window.ethereum) {
-      throw new Error('MetaMask not installed')
-    }
-  }
-
-  const showWalletSelection = (availableConnectors: any[]) => {
-    return new Promise((resolve) => {
-      dialog.create({
-        title: 'Select Wallet',
-        positiveText: 'Cancel',
-        positiveButtonProps: {
-          color: '#FB59F5',
-          textColor: '#FFFFFF'
-        },
-        style: {
-          width: '400px'
-        },
-        content: () => h('div', { 
-          style: {
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '12px',
-            padding: '20px 0'
-          }
-        }, availableConnectors.map(connector => 
-          h('button', {
-            style: {
-              display: 'flex',
-              alignItems: 'center',
-              width: '100%',
-              padding: '16px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '8px',
-              background: 'transparent',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              color: 'inherit',
-              fontSize: '14px',
-              outline: 'none',
-              '&:hover': {
-                borderColor: '#4AC5A0',
-                background: 'rgba(74, 197, 160, 0.1)'
-              }
-            },
-            onClick: (e: Event) => {
-              e.preventDefault()
-              e.stopPropagation()
-              dialog.destroyAll()
-              resolve(connector)
-            }
-          }, [
-            // 钱包图标
-            connector.icon && h('img', {
-              src: connector.icon,
-              style: {
-                width: '32px',
-                height: '32px',
-                marginRight: '12px',
-                borderRadius: '8px'
-              }
-            }),
-            // 钱包名称
-            h('span', {
-              style: {
-                flex: 1,
-                textAlign: 'left',
-                fontWeight: '500'
-              }
-            }, connector.name)
-          ])
-        )),
-        showIcon: false,
-        closable: true
-      })
-    })
-  }
-
-  const handleConnect = async () => {
-    try {
-      console.log('打开连接弹窗前状态:', {
-        wagmi: {
-          connected: isConnected.value,
-          address: address.value
-        },
-        appKit: {
-          connected: appKitAccount.value.isConnected,
-          address: appKitAccount.value.address,
-          status: appKitAccount.value.status
-        }
-      })
-      
-      modal.open({ view: 'Connect' })
-      
-    } catch (error: any) {
-      console.error('Wallet connection error:', error)
-      message.error('Failed to connect wallet')
-    }
-  }
 
   const handleDisconnect = async () => {
     try {
-      disconnect()
-      currentConnector.value = null
+      await disconnect()
       walletStore.disconnectWallet()
       message.success('Wallet disconnected')
     } catch (error: any) {
@@ -190,8 +108,9 @@ export function useWallet() {
   return {
     address,
     isConnected,
-    currentConnector,
     handleDisconnect,
-    formatAddress
+    formatAddress,
+    walletInfo,
+    appKitInstance
   }
 } 

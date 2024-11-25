@@ -30,7 +30,7 @@
         <div 
           class="wallet-button clickable" 
           :class="{ 'connected': isConnected }"
-          @click="handleWalletClick"
+          @click="isConnected ? disconnectWallet() : modal.open({ view: 'Connect' })"
         >
           <div class="wallet-icon-wrapper" v-if="isConnected">
             <template v-if="walletStore.walletInfo">
@@ -165,7 +165,7 @@ import CloseIcon from '@/assets/icons/close.svg?component'
 import ChatIcon from '@/assets/icons/chat_icon.svg?component'
 import GalleryIcon from '@/assets/icons/down.svg?component'
 import UpIcon from '@/assets/icons/up.svg?component'
-import { useAppKit } from '@reown/appkit/vue'
+import { useAppKit, useWalletInfo } from '@reown/appkit/vue'
 
 const theme = ref(darkTheme)
 const { isConnected, address, handleDisconnect, formatAddress } = useWallet()
@@ -177,8 +177,14 @@ const isMenuOpen = ref(false)
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value
 }
+const { walletInfo } = useWalletInfo()
 
 watch(() => isConnected.value, (newValue) => {
+  console.log('isConnected', newValue)
+  console.log('walletInfo', {
+    name: walletInfo.value?.name,
+    icon: walletInfo.value?.icon
+  })
   walletStore.setConnected(newValue)
   if (newValue && address.value) {
     walletStore.setUserWalletAddress(address.value)
@@ -189,30 +195,24 @@ watch(() => isConnected.value, (newValue) => {
 const modal = useAppKit()
 
 // 修改钱包点击处理方法
-const handleWalletClick = async () => {
-  // 使用 AppKit modal 打开钱包连接
+const disconnectWallet = async () => {
   try {
-    if (isConnected.value) {
-      dialog.warning({
-        title: 'Disconnect Wallet',
-        content: () => h('div', null, 'Are you sure you want to disconnect your wallet?'),
-        positiveText: 'Confirm',
-        negativeText: 'Cancel',
-        positiveButtonProps: {
-          color: '#FB59F5',
-          textColor: '#FFFFFF'
-        },
-        style: {
-          '--n-icon-color': '#FB59F5'
-        },
-        onPositiveClick: async () => {
-          await handleDisconnect()
-        }
-      })
-    } else {
-      // 使用 AppKit modal 打开钱包连接
-      modal.open({ view: 'Connect' })
-    }
+    dialog.warning({
+      title: 'Disconnect Wallet',
+      content: () => h('div', null, 'Are you sure you want to disconnect your wallet?'),
+      positiveText: 'Confirm',
+      negativeText: 'Cancel',
+      positiveButtonProps: {
+        color: '#FB59F5',
+        textColor: '#FFFFFF'
+      },
+      style: {
+        '--n-icon-color': '#FB59F5'
+      },
+      onPositiveClick: async () => {
+        await handleDisconnect()
+      }
+    })
   } catch (error) {
     console.error('Wallet operation error:', error)
   }

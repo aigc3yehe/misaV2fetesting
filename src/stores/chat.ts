@@ -8,7 +8,7 @@ interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
   type: 'text' | 'image' | 'error' | 'transaction'
   time?: string
-  show_status?: 'send_eth'
+  show_status?: 'send_eth' | 'idle'
   payment_info?: {
     recipient_address: string
     price: string
@@ -46,7 +46,21 @@ export const useChatStore = defineStore('chat', () => {
       role: 'system' as const,
       time: undefined,
       show_status: undefined
-    }
+    }/* ,
+    {
+      id: 2,
+      type: 'text' as const,
+      role: 'assistant' as const,
+      content: "When you complete the payment, please say 'payed' to me, and I will help you verify.\nPlease note:\n1. On-chain confirmation takes some time, please wait a moment after payment before notifying me.\n2. If I don't detect the successful payment hash, you can manually copy and paste it to me.",
+      time: formatTime(new Date()),
+      show_status: 'send_eth' as const,
+      payment_info: {
+        recipient_address: "0x900709432a8F2C7E65f90aA7CD35D0afe4eB7169",
+        price: "0.002",
+        network: "Base Sepolia",  // 修改网络名称
+        chainId: 84532  // 修改为 Base Sepolia 的 chainId
+      }
+    } */
   ]
 
   const messages = ref<ChatMessage[]>(initialMessages)

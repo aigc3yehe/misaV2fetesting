@@ -8,7 +8,7 @@ import App from './App.vue'
 import router from './router'
 import { QueryClient, VueQueryPlugin } from '@tanstack/vue-query'
 import { WagmiPlugin } from '@wagmi/vue'
-import { config } from './config/wagmi'
+import { config } from './config/wallet'
 
 const app = createApp(App)
 app.use(naive)
