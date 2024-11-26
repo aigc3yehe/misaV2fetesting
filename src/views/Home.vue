@@ -146,7 +146,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, h, watch, watchEffect } from 'vue'
+import { ref, h, watch, watchEffect, onBeforeUnmount, onMounted } from 'vue'
 import { NIcon, NConfigProvider } from 'naive-ui'
 import { darkTheme } from 'naive-ui'
 import ChatPanel from '@/components/chat/ChatPanel.vue'
@@ -166,6 +166,11 @@ import ChatIcon from '@/assets/icons/chat_icon.svg?component'
 import GalleryIcon from '@/assets/icons/down.svg?component'
 import UpIcon from '@/assets/icons/up.svg?component'
 import { useAppKit, useWalletInfo } from '@reown/appkit/vue'
+// 在文件顶部添加 import
+import { useChatStore } from '@/stores/chat'
+
+// 在 setup 中初始化 store
+const chatStore = useChatStore()
 
 const theme = ref(darkTheme)
 const { isConnected, address, handleDisconnect, formatAddress } = useWallet()
@@ -179,6 +184,19 @@ const toggleMenu = () => {
 }
 const { walletInfo } = useWalletInfo()
 
+// 心跳定时器
+// let heartbeatTimer: NodeJS.Timeout | null = null
+
+// 心跳请求函数
+// const sendHeartbeat = async () => { ... }
+
+// 启动心跳
+// const startHeartbeat = () => { ... }
+
+// 停止心跳
+// const stopHeartbeat = () => { ... }
+
+// 监听钱包连接状态
 watch(() => isConnected.value, (newValue) => {
   console.log('isConnected', newValue)
   console.log('walletInfo', {
@@ -227,6 +245,28 @@ const mobileActivePanel = ref('chat')
 const toggleMobilePanel = (panel: 'gallery' | 'chat') => {
   mobileActivePanel.value = mobileActivePanel.value === panel ? panel : panel
 }
+
+// 组件销毁前清理定时器
+// onBeforeUnmount(() => {
+//   stopHeartbeat()
+// })
+
+// 在任何用户活动时更新最后活动时间
+const handleUserActivity = () => {
+  chatStore.updateLastActivity()
+}
+
+// 在组件挂载时启动心跳
+onMounted(() => {
+  if (walletStore.isConnected) {
+    chatStore.startHeartbeat()
+  }
+})
+
+// 在组件卸载时停止心跳
+onBeforeUnmount(() => {
+   chatStore.stopHeartbeat()
+})
 </script>
 
 <style scoped>

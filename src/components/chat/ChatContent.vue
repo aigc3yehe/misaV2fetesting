@@ -127,8 +127,6 @@ const inputMessage = ref('')
 const scrollbarRef = ref<ScrollbarInst | null>(null)
 const inputRef = ref<any>(null)
 
-const misato_address = '0xDDCDDBFc282721beacff99Cc67137f728c5fB2fD'
-
 const { 
   data: hash,
   error,
@@ -379,8 +377,7 @@ const sendEth = async () => {
 
     // 发送交易
     sendTransaction({ 
-      //to: recipient_address as `0x${string}`, 
-      to: misato_address,
+      to: recipient_address as `0x${string}`, 
       value: parseEther(price)
     })
 
@@ -542,7 +539,7 @@ onUnmounted(() => {
 }
 
 .chat-top-spacing {
-  height: 42px;
+  height: 0px;
 }
 
 .messages-container {
@@ -560,6 +557,7 @@ onUnmounted(() => {
 }
 
 .message {
+  margin-top: 8px;
   display: flex;
   flex-direction: column;
   gap: 4px;

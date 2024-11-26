@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, watch } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
 import { useWalletStore } from './wallet'
 
 interface ChatMessage {
@@ -85,76 +85,194 @@ export const useChatStore = defineStore('chat', () => {
   const currentRequestId = ref<string | null>(null)
   const processingState = ref<'idle' | 'thinking' | 'generating' | 'minting'>('idle')
 
+  // 添加请求锁
+  const isRequesting = ref(false)
+  
+  // 包装请求函数
+  const makeRequest = async (requestFn: () => Promise<any>) => {
+    if (isRequesting.value) {
+      console.log('有请求正在进行中，等待...')
+      // 等待当前请求完成
+      await new Promise(resolve => {
+        const checkLock = () => {
+          if (!isRequesting.value) {
+            resolve(true)
+          } else {
+            setTimeout(checkLock, 100)
+          }
+        }
+        checkLock()
+      })
+    }
+    
+    try {
+      isRequesting.value = true
+      return await requestFn()
+    } finally {
+      isRequesting.value = false
+    }
+  }
+
+  // 修改发送心跳的函数
+  const sendHeartbeat = async () => {
+    // 如果距离上次活动时间不够长，跳过这次心跳
+    if (Date.now() - lastActivityTime.value < HEARTBEAT_TIMEOUT) {
+      return
+    }
+
+    await makeRequest(async () => {
+      try {
+        const response = await fetch('/api/heartbeat', {
+          headers: {
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFnZW50IiwiaWF0IjoxNzMyNDQzNjUxfQ.mEGxHMQPGxb2q4nEDvyAJwCjGGQmi9DNcXgslosn6DI',
+            'x-user-id': walletStore.userUuid
+          }
+        })
+        
+        const data = await response.json()
+        
+        // 处理心跳响应
+        if (data.inQueue) {
+          connectionState.value = 'queuing'
+          queuePosition.value = data.position || data.queueLength || 0
+          if (processingState.value === 'idle') {
+            resetMessages()
+          }
+        } else if (data.isActive) {
+          connectionState.value = 'ready'
+        }
+      } catch (error) {
+        console.error('心跳请求失败:', error)
+      }
+    })
+  }
+
+  // 修改发送消息的函数
   const sendMessage = async (messageText: string, options?: { pay_fee_hash?: string }) => {
+    updateLastActivity()
     if (!messageText.trim() || processingState.value !== 'idle') return
     
-    processingState.value = 'thinking'
-    
-    const conversation_history = messages.value
-      .filter(msg => 
-        (msg.role === 'assistant' || msg.role === 'user') && 
-        msg.type !== 'transaction'
-      )
-      .map(msg => ({ 
-        role: msg.role, 
-        content: msg.content 
-      }))
+    await makeRequest(async () => {
+      processingState.value = 'thinking'
+      
+      const conversation_history = messages.value
+        .filter(msg => 
+          (msg.role === 'assistant' || msg.role === 'user') && 
+          msg.type !== 'transaction'
+        )
+        .map(msg => ({ 
+          role: msg.role, 
+          content: msg.content 
+        }))
 
-    await addMessage({
-      id: Date.now(),
-      type: 'text',
-      role: 'user',
-      content: messageText,
-      time: formatTime(new Date())
-    })
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: messageText,
-          conversation_history,
-          user_uuid: walletStore.userUuid,
-          wallet_address: walletStore.userWalletAddress,
-          request_id: currentRequestId.value,
-          pay_fee_hash: options?.pay_fee_hash // 添加支付哈希
-        })
+      await addMessage({
+        id: Date.now(),
+        type: 'text',
+        role: 'user',
+        content: messageText,
+        time: formatTime(new Date())
       })
 
-      const result = await response.json()
-      
-      // 处理支付相关的响应
-      if ((result.status === 'paying' || result.status?.status === 'paying') && 
-          (result.recipient_address || result.status?.recipient_address) && 
-          (result.price || result.status?.price)) {
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFnZW50IiwiaWF0IjoxNzMyNDQzNjUxfQ.mEGxHMQPGxb2q4nEDvyAJwCjGGQmi9DNcXgslosn6DI',
+            'x-user-id': walletStore.userUuid
+          },
+          body: JSON.stringify({
+            message: messageText,
+            conversation_history,
+            user_uuid: walletStore.userUuid,
+            wallet_address: walletStore.userWalletAddress,
+            request_id: currentRequestId.value,
+            pay_fee_hash: options?.pay_fee_hash // 添加支付哈希
+          })
+        })
+
+        const result = await response.json()
         
-        // 获取正确的值
-        const recipientAddress = result.recipient_address || result.status?.recipient_address
-        const price = result.price || result.status?.price
-        const network = result.network || result.status?.network
-        const chainId = result.chainId || result.status?.chainId
-        const content = result.content || result.status?.content
+        // 处理支付相关的响应
+        if ((result.status === 'paying' || result.status?.status === 'paying') && 
+            (result.recipient_address || result.status?.recipient_address) && 
+            (result.price || result.status?.price)) {
+          
+          // 获取正确的值
+          const recipientAddress = result.recipient_address || result.status?.recipient_address
+          const price = result.price || result.status?.price
+          const network = result.network || result.status?.network
+          const chainId = result.chainId || result.status?.chainId
+          const content = result.content || result.status?.content
+          
+          await addMessage({
+            id: Date.now() + 1,
+            type: 'text',
+            role: 'assistant',
+            content: content,
+            time: formatTime(new Date()),
+            show_status: 'send_eth',
+            payment_info: {
+              recipient_address: recipientAddress,
+              price: price,
+              network: network,
+              chainId: chainId
+            }
+          })
+
+          // 添加语音播放
+          const sentences = content.split(/[.,!?。！？]/g).filter(Boolean)
+          const lastIndex = sentences.length - 1
+
+          sentences.forEach((sentence: string, index: number) => {
+            const cleanSentence = sentence.trim()
+            if (cleanSentence) {
+              window.unityInstance?.SendMessage(
+                'JSCall', 
+                'AddVoice', 
+                JSON.stringify({
+                  content: convertNumberToWords(cleanSentence),
+                  finish: index === lastIndex
+                })
+              )
+            }
+          })
+
+          processingState.value = 'idle'
+          return
+        }
         
+        if (result.status === 'full' || result.inQueue) {
+          connectionState.value = 'queuing'
+          if (result.position) {
+            queuePosition.value = result.position || 0
+          }
+          if (!result.position && result.queueLength) {
+            queuePosition.value = result.queueLength || 0
+          }
+          processingState.value = 'idle'
+          messages.value = [...initialMessages]
+          return
+        }
+        
+        if (result.error) {
+          throw new Error(result.error.message)
+        }
+
+        // 将 AI 回复分段发送到 Unity
+        const sentences = result.content.split(/[.,!?。！？]/g).filter(Boolean)
+        const lastIndex = sentences.length - 1
+
+        // 添加消息到聊天记录
         await addMessage({
           id: Date.now() + 1,
           type: 'text',
           role: 'assistant',
-          content: content,
-          time: formatTime(new Date()),
-          show_status: 'send_eth',
-          payment_info: {
-            recipient_address: recipientAddress,
-            price: price,
-            network: network,
-            chainId: chainId
-          }
+          content: result.content,
+          time: formatTime(new Date())
         })
 
-        // 添加语音播放
-        const sentences = content.split(/[.,!?。！？]/g).filter(Boolean)
-        const lastIndex = sentences.length - 1
-
+        // 逐句发送到 Unity 进行语音播放前进行数字转换
         sentences.forEach((sentence: string, index: number) => {
           const cleanSentence = sentence.trim()
           if (cleanSentence) {
@@ -162,78 +280,33 @@ export const useChatStore = defineStore('chat', () => {
               'JSCall', 
               'AddVoice', 
               JSON.stringify({
-                content: convertNumberToWords(cleanSentence),
+                content: convertNumberToWords(cleanSentence), // 添加数字转换
                 finish: index === lastIndex
               })
             )
           }
         })
 
-        processingState.value = 'idle'
-        return
-      }
-      
-      if (result.status === 'full') {
-        connectionState.value = 'queuing'
-        if (result.position) {
-          queuePosition.value = result.position
+        if (result.request_id) {
+          currentRequestId.value = result.request_id
+          processingState.value = 'generating'
+          pollImageStatus(result.request_id)
+        } else {
+          processingState.value = 'idle'
         }
-        processingState.value = 'idle'
-        messages.value = [...initialMessages]
-        return
-      }
-      
-      if (result.error) {
-        throw new Error(result.error.message)
-      }
 
-      // 将 AI 回复分段发送到 Unity
-      const sentences = result.content.split(/[.,!?。！？]/g).filter(Boolean)
-      const lastIndex = sentences.length - 1
-
-      // 添加消息到聊天记录
-      await addMessage({
-        id: Date.now() + 1,
-        type: 'text',
-        role: 'assistant',
-        content: result.content,
-        time: formatTime(new Date())
-      })
-
-      // 逐句发送到 Unity 进行语音播放前进行数字转换
-      sentences.forEach((sentence: string, index: number) => {
-        const cleanSentence = sentence.trim()
-        if (cleanSentence) {
-          window.unityInstance?.SendMessage(
-            'JSCall', 
-            'AddVoice', 
-            JSON.stringify({
-              content: convertNumberToWords(cleanSentence), // 添加数字转换
-              finish: index === lastIndex
-            })
-          )
-        }
-      })
-
-      if (result.request_id) {
-        currentRequestId.value = result.request_id
-        processingState.value = 'generating'
-        pollImageStatus(result.request_id)
-      } else {
+      } catch (error) {
+        console.error('Error:', error)
+        await addMessage({
+          id: Date.now() + 1,
+          type: 'error',
+          role: 'system',
+          content: 'Sorry, an error occurred while processing the message. Please try again.',
+          time: formatTime(new Date())
+        })
         processingState.value = 'idle'
       }
-
-    } catch (error) {
-      console.error('Error:', error)
-      await addMessage({
-        id: Date.now() + 1,
-        type: 'error',
-        role: 'system',
-        content: 'Sorry, an error occurred while processing the message. Please try again.',
-        time: formatTime(new Date())
-      })
-      processingState.value = 'idle'
-    }
+    })
   }
 
   const retryMessage = async (messageText: string) => {
@@ -255,7 +328,12 @@ export const useChatStore = defineStore('chat', () => {
     
     const checkStatus = async () => {
       try {
-        const response = await fetch(`/api/generation-status/${requestId}`)
+        const response = await fetch(`/api/generation-status/${requestId}`, {
+          headers: {
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFnZW50IiwiaWF0IjoxNzMyNDQzNjUxfQ.mEGxHMQPGxb2q4nEDvyAJwCjGGQmi9DNcXgslosn6DI',
+            'x-user-id': walletStore.userUuid
+          }
+        })
         const result = await response.json()
 
         if (result.status === 'completed') {
@@ -359,22 +437,62 @@ export const useChatStore = defineStore('chat', () => {
 
   // 检查连接状态的方法
   const checkConnectionStatus = async () => {
-    try {
-      const response = await fetch(`/api/initial-connection/${walletStore.userUuid}`)
-      const data = await response.json()
-      
-      if (data.status === 'yes') {
-        connectionState.value = 'ready'
-      } else if (data.status === 'full') {
-        connectionState.value = 'queuing'
-        queuePosition.value = data.position
-        messages.value = [...initialMessages]
+    await makeRequest(async () => {
+      try {
+        const response = await fetch(`/api/initial-connection/${walletStore.userUuid}`, {
+          headers: {
+            'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFnZW50IiwiaWF0IjoxNzMyNDQzNjUxfQ.mEGxHMQPGxb2q4nEDvyAJwCjGGQmi9DNcXgslosn6DI',
+            'x-user-id': walletStore.userUuid
+          }
+        })
+        const data = await response.json()
+        
+        if (data.isActive || data.status === 'yes') {
+          connectionState.value = 'ready'
+        } else if (data.inQueue) {
+          connectionState.value = 'queuing'
+          queuePosition.value = data.position || 0
+          messages.value = [...initialMessages]
+        }
+
+        // 可以选择在控制台输出消息
+        console.log(data.message)
+      } catch (err) {
+        console.error('Failed to check connection status:', err)
+        connectionState.value = 'not-connected'
       }
-    } catch (err) {
-      console.error('Failed to check connection status:', err)
-      connectionState.value = 'not-connected'
+    })
+  }
+
+  // 添加心跳相关的状态
+  const heartbeatTimer = ref<NodeJS.Timeout | null>(null)
+  const lastActivityTime = ref(Date.now())
+  const HEARTBEAT_INTERVAL = 10000 // 10秒
+  const HEARTBEAT_TIMEOUT = 20000 // 20秒，超过这个时间没有活动就发送心跳
+
+  // 更新最后活动时间
+  const updateLastActivity = () => {
+    lastActivityTime.value = Date.now()
+  }
+
+  // 启动心跳检查
+  const startHeartbeat = () => {
+    stopHeartbeat() // 确保先停止现有的心跳
+    heartbeatTimer.value = setInterval(sendHeartbeat, HEARTBEAT_INTERVAL)
+  }
+
+  // 停止心跳检查
+  const stopHeartbeat = () => {
+    if (heartbeatTimer.value) {
+      clearInterval(heartbeatTimer.value)
+      heartbeatTimer.value = null
     }
   }
+
+  // 在组件卸载时清理
+  onBeforeUnmount(() => {
+    stopHeartbeat()
+  })
 
   // 监听钱包连接状态
   watch(() => walletStore.isConnected, async (newValue) => {
@@ -382,7 +500,9 @@ export const useChatStore = defineStore('chat', () => {
       // 钱包连接后开始检查连接状态
       console.log('钱包连接后开始检查连接状态isConnected', walletStore.isConnected)
       await checkConnectionStatus()
+      startHeartbeat() // 连接钱包后启动心跳
     } else {
+      stopHeartbeat() // 断开钱包时停止心跳
       connectionState.value = 'not-connected'
       resetMessages()
     }
@@ -468,6 +588,10 @@ export const useChatStore = defineStore('chat', () => {
     resetMessages,  // 导出重置方法以便需要时手动调用
     connectionState,
     queuePosition,
-    checkConnectionStatus
+    checkConnectionStatus,
+    updateLastActivity, // 导出这个方法以便外部可以手动更新活动时间
+    startHeartbeat,
+    stopHeartbeat,
+    isRequesting, // 可选：如果需要在外部查看请求状态
   }
 }) 
