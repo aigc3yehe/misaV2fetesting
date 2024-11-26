@@ -6,8 +6,6 @@ export function useDevice() {
   const checkDevice = () => {
     const width = window.innerWidth
     isMobile.value = width <= 768
-    /* console.log('当前窗口宽度:', width)
-    console.log('是否为移动设备:', isMobile.value) */
   }
   
   onMounted(() => {
