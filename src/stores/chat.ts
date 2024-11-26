@@ -140,6 +140,7 @@ export const useChatStore = defineStore('chat', () => {
           message.error('Timeout or disconnected')
           connectionState.value = 'queuing'
           resetMessages()
+          stopHeartbeat()
         }
         
         wasActive.value = data.isActive
@@ -208,6 +209,7 @@ export const useChatStore = defineStore('chat', () => {
         // 检查是否从活跃状态变为非活跃状态
         if (wasActive.value && !result.isActive && connectionState.value === 'ready') {
           message.error('Timeout or disconnected')
+          stopHeartbeat()
         }
         
         wasActive.value = result.isActive
@@ -465,17 +467,21 @@ export const useChatStore = defineStore('chat', () => {
         
         if (data.isActive || data.status === 'yes') {
           connectionState.value = 'ready'
+          wasActive.value = true
+          startHeartbeat() // 如果连接成功，开始心跳
         } else if (data.inQueue) {
           connectionState.value = 'queuing'
           queuePosition.value = data.position || 100
           messages.value = [...initialMessages]
+          startHeartbeat() // 如果在队列中，也开始心跳以监控队列状态
         }
 
-        // 可以选择在控制台输出消息
         console.log(data.message)
       } catch (err) {
         console.error('Failed to check connection status:', err)
         connectionState.value = 'not-connected'
+        wasActive.value = false
+        stopHeartbeat() // 如果检查失败，确保心跳停止
       }
     })
   }
