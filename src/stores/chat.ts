@@ -1,6 +1,9 @@
 import { defineStore } from 'pinia'
 import { ref, watch, onBeforeUnmount } from 'vue'
 import { useWalletStore } from './wallet'
+import { useMessage } from 'naive-ui'
+
+const message = useMessage()
 
 interface ChatMessage {
   id: number
@@ -113,9 +116,10 @@ export const useChatStore = defineStore('chat', () => {
     }
   }
 
+  const wasActive = ref(false)
+
   // 修改发送心跳的函数
   const sendHeartbeat = async () => {
-    // 如果距离上次活动时间不够长，跳过这次心跳
     if (Date.now() - lastActivityTime.value < HEARTBEAT_TIMEOUT) {
       return
     }
@@ -131,10 +135,18 @@ export const useChatStore = defineStore('chat', () => {
         
         const data = await response.json()
         
-        // 处理心跳响应
+        // 检查是否从活跃状态变为非活跃状态
+        if (wasActive.value && !data.isActive && connectionState.value === 'ready') {
+          message.error('Timeout or disconnected')
+          connectionState.value = 'queuing'
+          resetMessages()
+        }
+        
+        wasActive.value = data.isActive
+        
         if (data.inQueue) {
           connectionState.value = 'queuing'
-          queuePosition.value = data.position || data.queueLength || 0
+          queuePosition.value = data.position || 100
           if (processingState.value === 'idle') {
             resetMessages()
           }
@@ -193,6 +205,13 @@ export const useChatStore = defineStore('chat', () => {
 
         const result = await response.json()
         
+        // 检查是否从活跃状态变为非活跃状态
+        if (wasActive.value && !result.isActive && connectionState.value === 'ready') {
+          message.error('Timeout or disconnected')
+        }
+        
+        wasActive.value = result.isActive
+        
         // 处理支付相关的响应
         if ((result.status === 'paying' || result.status?.status === 'paying') && 
             (result.recipient_address || result.status?.recipient_address) && 
@@ -245,10 +264,7 @@ export const useChatStore = defineStore('chat', () => {
         if (result.status === 'full' || result.inQueue) {
           connectionState.value = 'queuing'
           if (result.position) {
-            queuePosition.value = result.position || 0
-          }
-          if (!result.position && result.queueLength) {
-            queuePosition.value = result.queueLength || 0
+            queuePosition.value = result.position || 100
           }
           processingState.value = 'idle'
           messages.value = [...initialMessages]
@@ -451,7 +467,7 @@ export const useChatStore = defineStore('chat', () => {
           connectionState.value = 'ready'
         } else if (data.inQueue) {
           connectionState.value = 'queuing'
-          queuePosition.value = data.position || 0
+          queuePosition.value = data.position || 100
           messages.value = [...initialMessages]
         }
 

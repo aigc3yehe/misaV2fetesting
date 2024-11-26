@@ -70,7 +70,7 @@
                       </n-icon>
                       <div class="state-message">
                         There are too many people at the moment, please wait<br/>
-                        {{ chatStore.queuePosition }} people are waiting...
+                        {{ formatQueuePosition }} people are waiting...
                       </div>
                       <n-button class="try-connect-btn" @click="handleTryConnect">
                         Try to connect
@@ -101,7 +101,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useMessage } from 'naive-ui'
 import { useWalletStore } from '@/stores'
 import UnityGame from '../UnityGame.vue'
@@ -185,6 +185,10 @@ onMounted(() => {
       showRoleSelect.value = false
     }
   })
+})
+
+const formatQueuePosition = computed(() => {
+  return chatStore.queuePosition > 99 ? '99+' : chatStore.queuePosition
 })
 </script>
 
